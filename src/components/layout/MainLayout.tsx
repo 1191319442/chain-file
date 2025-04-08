@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import {
   FileText,
@@ -10,10 +10,12 @@ import {
   BarChart2,
   Settings,
   LogOut,
+  LogIn,
   Menu,
   X
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 type NavItemProps = {
   icon: React.ReactNode;
@@ -39,7 +41,10 @@ const NavItem = ({ icon, label, to, active }: NavItemProps) => (
 
 const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { toast } = useToast();
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
+  const [isLoggedIn, setIsLoggedIn] = React.useState(false); // 模拟登录状态
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -51,6 +56,16 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     { icon: <BarChart2 size={18} />, label: "区块链记录", to: "/blockchain" },
     { icon: <Settings size={18} />, label: "设置", to: "/settings" },
   ];
+
+  const handleLogout = () => {
+    // 实际应用中，这里应该清除用户会话、token等
+    setIsLoggedIn(false);
+    toast({
+      title: "已登出",
+      description: "您已成功退出系统"
+    });
+    navigate('/login');
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -73,13 +88,24 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           </Link>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" className="text-sm">
-            欢迎, 用户
-          </Button>
-          <Button variant="outline" size="sm" className="gap-1">
-            <LogOut size={16} />
-            <span className="hidden sm:inline">退出</span>
-          </Button>
+          {isLoggedIn ? (
+            <>
+              <Button variant="ghost" size="sm" className="text-sm">
+                欢迎, 用户
+              </Button>
+              <Button variant="outline" size="sm" className="gap-1" onClick={handleLogout}>
+                <LogOut size={16} />
+                <span className="hidden sm:inline">退出</span>
+              </Button>
+            </>
+          ) : (
+            <Link to="/login">
+              <Button variant="outline" size="sm" className="gap-1">
+                <LogIn size={16} />
+                <span className="hidden sm:inline">登录/注册</span>
+              </Button>
+            </Link>
+          )}
         </div>
       </header>
 

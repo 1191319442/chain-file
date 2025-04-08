@@ -18,9 +18,14 @@ const NotFound: React.FC = () => {
         <p className="text-muted-foreground mb-8">
           您访问的页面不存在或已被移动。请返回首页继续浏览。
         </p>
-        <Link to="/">
-          <Button className="px-6">返回首页</Button>
-        </Link>
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <Link to="/">
+            <Button className="px-6 w-full">返回首页</Button>
+          </Link>
+          <Link to="/login">
+            <Button variant="outline" className="px-6 w-full">返回登录</Button>
+          </Link>
+        </div>
       </div>
     </div>
   );
