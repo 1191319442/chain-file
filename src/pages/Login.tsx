@@ -4,8 +4,8 @@
  * 提供用户登录和注册功能
  */
 
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,10 +13,16 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { FileText, User, Lock, Mail } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
+  const { isAuthenticated, login, register } = useAuth();
+  
+  // 获取重定向前的路径
+  const from = location.state?.from?.pathname || "/dashboard";
   
   // 登录表单状态
   const [loginForm, setLoginForm] = useState({
@@ -44,8 +50,15 @@ const Login: React.FC = () => {
     setRegisterForm(prev => ({ ...prev, [name]: value }));
   };
 
+  // 如果已经登录，重定向到主页
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate(from, { replace: true });
+    }
+  }, [isAuthenticated, navigate, from]);
+
   // 处理登录提交
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // 简单验证
@@ -58,37 +71,18 @@ const Login: React.FC = () => {
       return;
     }
     
-    // 这里应该添加实际的登录逻辑
-    console.log('登录表单提交:', loginForm);
+    // 调用登录方法
+    const success = await login(loginForm.email, loginForm.password);
     
-    // TODO: 替换为后端API - 登录接口
-    // 示例: 
-    // try {
-    //   const response = await api.post('/auth/login', loginForm);
-    //   if (response.data.token) {
-    //     localStorage.setItem('token', response.data.token);
-    //     navigate('/');
-    //   }
-    // } catch (error) {
-    //   toast({
-    //     title: "登录失败",
-    //     description: error.message || "请检查您的凭据",
-    //     variant: "destructive"
-    //   });
-    // }
-    
-    // 模拟登录成功
-    toast({
-      title: "登录成功",
-      description: "欢迎回来！"
-    });
-    
-    // 登录成功后重定向到主页
-    navigate('/');
+    // 登录成功后重定向在useEffect中处理
+    if (success) {
+      // 清空表单
+      setLoginForm({ email: '', password: '' });
+    }
   };
 
   // 处理注册提交
-  const handleRegisterSubmit = (e: React.FormEvent) => {
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // 简单验证
@@ -110,34 +104,23 @@ const Login: React.FC = () => {
       return;
     }
     
-    // TODO: 替换为后端API - 注册接口
-    // 示例: 
-    // try {
-    //   const { confirmPassword, ...registerData } = registerForm;
-    //   const response = await api.post('/auth/register', registerData);
-    //   if (response.data.success) {
-    //     toast({
-    //       title: "注册成功",
-    //       description: "您的账户已创建成功！"
-    //     });
-    //     navigate('/');
-    //   }
-    // } catch (error) {
-    //   toast({
-    //     title: "注册失败",
-    //     description: error.message || "请检查您的输入",
-    //     variant: "destructive"
-    //   });
-    // }
+    // 调用注册方法
+    const success = await register(
+      registerForm.username,
+      registerForm.email,
+      registerForm.password
+    );
     
-    // 模拟注册成功
-    toast({
-      title: "注册成功",
-      description: "您的账户已创建成功！"
-    });
-    
-    // 注册成功后重定向到主页
-    navigate('/');
+    // 注册成功后重定向在useEffect中处理
+    if (success) {
+      // 清空表单
+      setRegisterForm({
+        username: '',
+        email: '',
+        password: '',
+        confirmPassword: ''
+      });
+    }
   };
 
   return (

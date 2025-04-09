@@ -8,8 +8,11 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { FileQuestion } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 const NotFound: React.FC = () => {
+  const { isAuthenticated } = useAuth();
+  
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="text-center max-w-md">
@@ -24,12 +27,14 @@ const NotFound: React.FC = () => {
           您访问的页面不存在或已被移动。请返回首页继续浏览。
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Link to="/">
+          <Link to={isAuthenticated ? "/dashboard" : "/login"}>
             <Button className="px-6 w-full">返回首页</Button>
           </Link>
-          <Link to="/login">
-            <Button variant="outline" className="px-6 w-full">返回登录</Button>
-          </Link>
+          {!isAuthenticated && (
+            <Link to="/login">
+              <Button variant="outline" className="px-6 w-full">返回登录</Button>
+            </Link>
+          )}
         </div>
       </div>
     </div>

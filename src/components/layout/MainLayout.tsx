@@ -15,12 +15,12 @@ import {
   BarChart2,
   Settings,
   LogOut,
-  LogIn,
   Menu,
-  X
+  X,
+  User
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/context/AuthContext";
 
 type NavItemProps = {
   icon: React.ReactNode;
@@ -53,15 +53,14 @@ const NavItem = ({ icon, label, to, active }: NavItemProps) => (
 const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { toast } = useToast();
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
-  const [isLoggedIn, setIsLoggedIn] = React.useState(false); // 模拟登录状态
+  const { isAuthenticated, logout, user } = useAuth(); // 使用认证上下文
 
   const isActive = (path: string) => location.pathname === path;
 
   // 导航菜单配置
   const navigation = [
-    { icon: <FileText size={18} />, label: "我的文件", to: "/" },
+    { icon: <FileText size={18} />, label: "我的文件", to: "/dashboard" },
     { icon: <Upload size={18} />, label: "上传文件", to: "/upload" },
     { icon: <Users size={18} />, label: "文件共享", to: "/share" },
     { icon: <History size={18} />, label: "文件历史", to: "/history" },
@@ -71,23 +70,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   // 处理登出功能
   const handleLogout = () => {
-    // TODO: 替换为后端API - 登出接口
-    // 示例:
-    // try {
-    //   await api.post('/auth/logout');
-    //   localStorage.removeItem('token');
-    //   setIsLoggedIn(false);
-    //   navigate('/login');
-    // } catch (error) {
-    //   console.error('登出失败', error);
-    // }
-    
-    // 模拟登出
-    setIsLoggedIn(false);
-    toast({
-      title: "已登出",
-      description: "您已成功退出系统"
-    });
+    logout();
     navigate('/login');
   };
 
@@ -104,7 +87,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           >
             {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
           </Button>
-          <Link to="/" className="flex items-center gap-2">
+          <Link to="/dashboard" className="flex items-center gap-2">
             <div className="bg-primary-500 text-white p-1 rounded">
               <FileText size={24} />
             </div>
@@ -112,10 +95,11 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           </Link>
         </div>
         <div className="flex items-center gap-2">
-          {isLoggedIn ? (
+          {isAuthenticated && user ? (
             <>
-              <Button variant="ghost" size="sm" className="text-sm">
-                欢迎, 用户
+              <Button variant="ghost" size="sm" className="text-sm gap-2">
+                <User size={16} />
+                <span>欢迎, {user.username}</span>
               </Button>
               <Button variant="outline" size="sm" className="gap-1" onClick={handleLogout}>
                 <LogOut size={16} />
@@ -125,7 +109,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           ) : (
             <Link to="/login">
               <Button variant="outline" size="sm" className="gap-1">
-                <LogIn size={16} />
+                <LogOut size={16} />
                 <span className="hidden sm:inline">登录/注册</span>
               </Button>
             </Link>
