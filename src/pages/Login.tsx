@@ -1,4 +1,9 @@
 
+/**
+ * 登录与注册页面组件
+ * 提供用户登录和注册功能
+ */
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -56,6 +61,22 @@ const Login: React.FC = () => {
     // 这里应该添加实际的登录逻辑
     console.log('登录表单提交:', loginForm);
     
+    // TODO: 替换为后端API - 登录接口
+    // 示例: 
+    // try {
+    //   const response = await api.post('/auth/login', loginForm);
+    //   if (response.data.token) {
+    //     localStorage.setItem('token', response.data.token);
+    //     navigate('/');
+    //   }
+    // } catch (error) {
+    //   toast({
+    //     title: "登录失败",
+    //     description: error.message || "请检查您的凭据",
+    //     variant: "destructive"
+    //   });
+    // }
+    
     // 模拟登录成功
     toast({
       title: "登录成功",
@@ -89,8 +110,25 @@ const Login: React.FC = () => {
       return;
     }
     
-    // 这里应该添加实际的注册逻辑
-    console.log('注册表单提交:', registerForm);
+    // TODO: 替换为后端API - 注册接口
+    // 示例: 
+    // try {
+    //   const { confirmPassword, ...registerData } = registerForm;
+    //   const response = await api.post('/auth/register', registerData);
+    //   if (response.data.success) {
+    //     toast({
+    //       title: "注册成功",
+    //       description: "您的账户已创建成功！"
+    //     });
+    //     navigate('/');
+    //   }
+    // } catch (error) {
+    //   toast({
+    //     title: "注册失败",
+    //     description: error.message || "请检查您的输入",
+    //     variant: "destructive"
+    //   });
+    // }
     
     // 模拟注册成功
     toast({

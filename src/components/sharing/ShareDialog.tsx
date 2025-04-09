@@ -1,4 +1,9 @@
 
+/**
+ * 文件分享对话框组件
+ * 允许用户创建分享链接并设置访问权限
+ */
+
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -21,8 +26,10 @@ const ShareDialog: React.FC<ShareDialogProps> = ({ isOpen, onClose, file }) => {
   const [expiryDays, setExpiryDays] = useState("7");
   const { toast } = useToast();
   
+  // 生成分享链接
   const shareUrl = file ? `https://chain-file.example.com/s/${file.id}` : '';
   
+  // 复制分享链接到剪贴板
   const handleCopyLink = () => {
     navigator.clipboard.writeText(shareUrl);
     setCopied(true);
@@ -34,7 +41,31 @@ const ShareDialog: React.FC<ShareDialogProps> = ({ isOpen, onClose, file }) => {
     setTimeout(() => setCopied(false), 2000);
   };
   
+  // TODO: 替换为后端API - 文件分享接口
   const handleShare = () => {
+    // 示例:
+    // try {
+    //   const response = await api.post('/files/share', {
+    //     fileId: file?.id,
+    //     readOnly,
+    //     expiryDays: parseInt(expiryDays)
+    //   });
+    //
+    //   if (response.data.success) {
+    //     toast({
+    //       title: "分享成功",
+    //       description: `文件已分享，${readOnly ? '只读' : '可编辑'}，有效期${expiryDays}天`,
+    //     });
+    //     onClose();
+    //   }
+    // } catch (error) {
+    //   toast({
+    //     title: "分享失败",
+    //     description: error.message || "无法创建分享链接",
+    //     variant: "destructive",
+    //   });
+    // }
+    
     toast({
       title: "分享成功",
       description: `文件已分享，${readOnly ? '只读' : '可编辑'}，有效期${expiryDays}天`,

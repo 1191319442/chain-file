@@ -1,4 +1,9 @@
 
+/**
+ * 主应用组件
+ * 包含全局状态管理、路由配置和UI组件初始化
+ */
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -13,8 +18,13 @@ import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 
+// 创建React Query客户端实例
 const queryClient = new QueryClient();
 
+/**
+ * 应用根组件
+ * 配置全局提供器和路由系统
+ */
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>

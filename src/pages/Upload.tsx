@@ -1,4 +1,9 @@
 
+/**
+ * 文件上传页面
+ * 提供用户上传文件到区块链的功能
+ */
+
 import React from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import FileUploader from '@/components/dashboard/FileUploader';

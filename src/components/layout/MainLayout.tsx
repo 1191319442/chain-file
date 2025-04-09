@@ -1,4 +1,9 @@
 
+/**
+ * 主布局组件
+ * 提供应用的整体布局结构，包括顶部导航栏和侧边栏
+ */
+
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -24,6 +29,9 @@ type NavItemProps = {
   active?: boolean;
 };
 
+/**
+ * 侧边栏导航项组件
+ */
 const NavItem = ({ icon, label, to, active }: NavItemProps) => (
   <Link to={to}>
     <Button
@@ -39,6 +47,9 @@ const NavItem = ({ icon, label, to, active }: NavItemProps) => (
   </Link>
 );
 
+/**
+ * 主布局组件，包含顶部导航栏和侧边栏
+ */
 const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -48,6 +59,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   const isActive = (path: string) => location.pathname === path;
 
+  // 导航菜单配置
   const navigation = [
     { icon: <FileText size={18} />, label: "我的文件", to: "/" },
     { icon: <Upload size={18} />, label: "上传文件", to: "/upload" },
@@ -57,8 +69,20 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     { icon: <Settings size={18} />, label: "设置", to: "/settings" },
   ];
 
+  // 处理登出功能
   const handleLogout = () => {
-    // 实际应用中，这里应该清除用户会话、token等
+    // TODO: 替换为后端API - 登出接口
+    // 示例:
+    // try {
+    //   await api.post('/auth/logout');
+    //   localStorage.removeItem('token');
+    //   setIsLoggedIn(false);
+    //   navigate('/login');
+    // } catch (error) {
+    //   console.error('登出失败', error);
+    // }
+    
+    // 模拟登出
     setIsLoggedIn(false);
     toast({
       title: "已登出",
@@ -69,7 +93,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Header */}
+      {/* 顶部导航栏 */}
       <header className="h-16 border-b bg-white flex items-center px-4 justify-between">
         <div className="flex items-center">
           <Button
@@ -110,7 +134,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       </header>
 
       <div className="flex flex-1">
-        {/* Sidebar */}
+        {/* 侧边栏 */}
         <aside
           className={cn(
             "w-64 border-r bg-white p-4 transition-all duration-300 ease-in-out",
@@ -136,7 +160,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           </div>
         </aside>
 
-        {/* Main Content */}
+        {/* 主内容区 */}
         <main className="flex-1 p-6 bg-gray-50">{children}</main>
       </div>
     </div>

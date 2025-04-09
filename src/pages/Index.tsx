@@ -1,4 +1,9 @@
 
+/**
+ * 首页组件
+ * 显示用户的文件列表，提供搜索和文件操作功能
+ */
+
 import React, { useState } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import FileCard, { FileItem } from '@/components/dashboard/FileCard';
@@ -9,6 +14,7 @@ import { Search, Upload } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from 'react-router-dom';
 
+// 模拟文件数据 - 生产环境中应该从API获取
 const MOCK_FILES: FileItem[] = [
   {
     id: '1',
@@ -73,38 +79,90 @@ const Index: React.FC = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  // 根据搜索关键词筛选文件
   const filteredFiles = MOCK_FILES.filter(
     (file) => file.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // TODO: 替换为后端API - 文件下载接口
   const handleDownload = (file: FileItem) => {
+    // 示例:
+    // try {
+    //   const response = await api.get(`/files/${file.id}/download`, { responseType: 'blob' });
+    //   // 创建下载链接
+    //   const url = window.URL.createObjectURL(new Blob([response.data]));
+    //   const link = document.createElement('a');
+    //   link.href = url;
+    //   link.setAttribute('download', file.name);
+    //   document.body.appendChild(link);
+    //   link.click();
+    //   link.remove();
+    // } catch (error) {
+    //   toast({
+    //     title: "下载失败",
+    //     description: error.message || "无法下载文件",
+    //     variant: "destructive"
+    //   });
+    // }
+    
     toast({
       title: "文件下载已开始",
       description: `正在从区块链下载: ${file.name}`,
     });
-    // 实际应用中这里会调用下载API
   };
 
+  // 处理文件分享
   const handleShare = (file: FileItem) => {
     setSelectedFile(file);
     setShareDialogOpen(true);
   };
 
+  // TODO: 替换为后端API - 文件详情查看接口
   const handleView = (file: FileItem) => {
+    // 示例:
+    // try {
+    //   const response = await api.get(`/files/${file.id}`);
+    //   // 处理文件详情数据
+    //   setFileDetails(response.data);
+    //   setFileDetailsModalOpen(true);
+    // } catch (error) {
+    //   toast({
+    //     title: "获取文件详情失败",
+    //     description: error.message || "无法获取文件信息",
+    //     variant: "destructive"
+    //   });
+    // }
+    
     toast({
       title: "查看文件详情",
       description: `文件: ${file.name}`,
     });
-    // 实际应用中这里会打开文件详情页
   };
 
+  // TODO: 替换为后端API - 文件删除接口
   const handleDelete = (file: FileItem) => {
+    // 示例:
+    // try {
+    //   await api.delete(`/files/${file.id}`);
+    //   // 更新文件列表
+    //   setFiles(prevFiles => prevFiles.filter(f => f.id !== file.id));
+    //   toast({
+    //     title: "文件已删除",
+    //     description: `已从区块链中删除: ${file.name}`,
+    //   });
+    // } catch (error) {
+    //   toast({
+    //     title: "删除失败",
+    //     description: error.message || "无法删除文件",
+    //     variant: "destructive"
+    //   });
+    // }
+    
     toast({
       title: "文件已删除",
       description: `已从区块链中删除: ${file.name}`,
       variant: "destructive",
     });
-    // 实际应用中这里会调用删除API
   };
 
   return (

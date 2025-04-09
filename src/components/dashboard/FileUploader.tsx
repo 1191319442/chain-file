@@ -1,4 +1,9 @@
 
+/**
+ * 文件上传组件
+ * 提供文件选择、预览和上传功能
+ */
+
 import React, { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,6 +17,7 @@ const FileUploader: React.FC = () => {
   const [progress, setProgress] = useState(0);
   const { toast } = useToast();
 
+  // 处理文件选择
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const newFiles = Array.from(e.target.files);
@@ -19,12 +25,14 @@ const FileUploader: React.FC = () => {
     }
   };
 
+  // 移除选择的文件
   const removeFile = (index: number) => {
     const newFiles = [...files];
     newFiles.splice(index, 1);
     setFiles(newFiles);
   };
 
+  // TODO: 替换为后端API - 文件上传接口
   const handleUpload = async () => {
     if (files.length === 0) {
       toast({
@@ -37,7 +45,41 @@ const FileUploader: React.FC = () => {
     setUploading(true);
     setProgress(0);
     
-    // Simulate upload progress
+    // 示例:
+    // try {
+    //   const formData = new FormData();
+    //   files.forEach((file) => {
+    //     formData.append('files', file);
+    //   });
+    //
+    //   // 使用支持进度报告的axios
+    //   const response = await api.post('/files/upload', formData, {
+    //     onUploadProgress: (progressEvent) => {
+    //       const percentCompleted = Math.round(
+    //         (progressEvent.loaded * 100) / progressEvent.total
+    //       );
+    //       setProgress(percentCompleted);
+    //     }
+    //   });
+    //
+    //   if (response.data.success) {
+    //     toast({
+    //       title: "文件上传成功",
+    //       description: `已成功上传 ${files.length} 个文件到区块链`,
+    //     });
+    //     setFiles([]);
+    //   }
+    // } catch (error) {
+    //   toast({
+    //     title: "上传失败",
+    //     description: error.message || "文件上传过程中发生错误",
+    //     variant: "destructive",
+    //   });
+    // } finally {
+    //   setUploading(false);
+    // }
+    
+    // 模拟上传进度
     const interval = setInterval(() => {
       setProgress((prev) => {
         if (prev >= 100) {
@@ -48,7 +90,7 @@ const FileUploader: React.FC = () => {
       });
     }, 500);
 
-    // Simulate upload delay
+    // 模拟上传延迟
     setTimeout(() => {
       clearInterval(interval);
       setProgress(100);

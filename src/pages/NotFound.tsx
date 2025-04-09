@@ -1,4 +1,9 @@
 
+/**
+ * 404页面组件
+ * 当用户访问不存在的路径时显示此页面
+ */
+
 import React from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
