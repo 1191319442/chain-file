@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,11 +9,14 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { FileKey, Bell, FileLock2, Database, User, Save } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 const Settings: React.FC = () => {
-  const [userName, setUserName] = useState('用户名');
+  const { user } = useAuth();
+  const [userName, setUserName] = useState('');
   const [walletAddress, setWalletAddress] = useState('0x71C7656EC7ab88b098defB751B7401B5f6d8976F');
-  const [email, setEmail] = useState('example@mail.com');
+  const [email, setEmail] = useState('');
   
   const [notifyOnShare, setNotifyOnShare] = useState(true);
   const [notifyOnDownload, setNotifyOnDownload] = useState(true);
@@ -23,13 +26,70 @@ const Settings: React.FC = () => {
   const [privateUploads, setPrivateUploads] = useState(false);
   const [highSecurity, setHighSecurity] = useState(false);
   
+  const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
   
-  const saveSettings = () => {
-    toast({
-      title: "设置已保存",
-      description: "您的个人设置已成功更新",
-    });
+  // 获取用户信息
+  useEffect(() => {
+    if (user) {
+      // 设置邮箱
+      setEmail(user.email || '');
+      
+      // 获取用户资料信息
+      const fetchUserProfile = async () => {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('username')
+          .eq('id', user.id)
+          .single();
+        
+        if (error) {
+          console.error('获取用户资料失败:', error);
+          toast({
+            title: "获取用户资料失败",
+            description: error.message,
+            variant: "destructive",
+          });
+        } else if (data) {
+          setUserName(data.username || '');
+        }
+      };
+      
+      fetchUserProfile();
+    }
+  }, [user, toast]);
+  
+  const saveSettings = async () => {
+    if (!user) return;
+    
+    setIsSaving(true);
+    
+    try {
+      // 更新用户资料
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          username: userName,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
+      
+      if (error) throw error;
+      
+      toast({
+        title: "设置已保存",
+        description: "您的个人设置已成功更新",
+      });
+    } catch (error: any) {
+      console.error('保存设置失败:', error);
+      toast({
+        title: "保存失败",
+        description: error.message || "无法更新您的设置，请重试",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
   
   return (
@@ -71,7 +131,8 @@ const Settings: React.FC = () => {
                       id="email"
                       type="email"
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      readOnly
+                      className="bg-gray-100"
                     />
                   </div>
                 </div>
@@ -256,9 +317,9 @@ const Settings: React.FC = () => {
         </div>
         
         <div className="mt-8 flex justify-end">
-          <Button onClick={saveSettings} className="px-6">
+          <Button onClick={saveSettings} className="px-6" disabled={isSaving}>
             <Save className="mr-2 h-4 w-4" />
-            保存设置
+            {isSaving ? "保存中..." : "保存设置"}
           </Button>
         </div>
       </div>

@@ -1,4 +1,3 @@
-
 /**
  * 认证上下文组件
  * 管理用户登录状态和认证相关功能
@@ -17,6 +16,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   user: User | null;
   session: Session | null;
+  updateProfile: (data: { username?: string }) => Promise<boolean>;
 }
 
 // 创建认证上下文
@@ -67,6 +67,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       subscription.unsubscribe();
     };
   }, [toast]);
+
+  /**
+   * 更新用户资料
+   * @param data 要更新的数据
+   * @returns 更新是否成功
+   */
+  const updateProfile = async (data: { username?: string }): Promise<boolean> => {
+    try {
+      if (!user) throw new Error("用户未登录");
+      
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          ...data,
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', user.id);
+      
+      if (error) throw error;
+      
+      return true;
+    } catch (error: any) {
+      console.error('更新资料失败', error);
+      toast({
+        title: "更新资料失败",
+        description: error.message || "无法更新您的资料，请重试",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
 
   /**
    * 登录方法
@@ -160,7 +191,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     register,
     logout,
     user,
-    session
+    session,
+    updateProfile
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
