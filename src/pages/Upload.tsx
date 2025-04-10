@@ -10,6 +10,7 @@ import FileUploader from '@/components/dashboard/FileUploader';
 import { fiscoBcosService } from '@/services/fiscoBcosService';
 import { Badge } from '@/components/ui/badge';
 import { Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const Upload: React.FC = () => {
   const [bcosConnected, setBcosConnected] = useState(false);
@@ -44,7 +45,10 @@ const Upload: React.FC = () => {
                 <span className="text-sm">连接中...</span>
               </div>
             ) : (
-              <Badge variant={bcosConnected ? "success" : "destructive"}>
+              <Badge 
+                variant={bcosConnected ? "default" : "destructive"}
+                className={cn(bcosConnected && "bg-green-500 hover:bg-green-600")}
+              >
                 {bcosConnected ? '已连接' : '未连接'}
               </Badge>
             )}
