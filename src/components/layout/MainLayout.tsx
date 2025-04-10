@@ -74,6 +74,13 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     navigate('/login');
   };
 
+  // 获取用户显示名
+  const getUserDisplayName = () => {
+    if (!user) return "";
+    // 使用user.user_metadata?.username替代直接访问username属性
+    return user.user_metadata?.username || user.email?.split('@')[0] || "用户";
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       {/* 顶部导航栏 */}
@@ -99,7 +106,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             <>
               <Button variant="ghost" size="sm" className="text-sm gap-2">
                 <User size={16} />
-                <span>欢迎, {user.username}</span>
+                <span>欢迎, {getUserDisplayName()}</span>
               </Button>
               <Button variant="outline" size="sm" className="gap-1" onClick={handleLogout}>
                 <LogOut size={16} />
