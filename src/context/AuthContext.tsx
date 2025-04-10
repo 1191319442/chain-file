@@ -6,14 +6,17 @@
 
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { Session, User } from '@supabase/supabase-js';
 
 // 认证上下文类型定义
 interface AuthContextType {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   register: (username: string, email: string, password: string) => Promise<boolean>;
-  logout: () => void;
-  user: any | null;
+  logout: () => Promise<void>;
+  user: User | null;
+  session: Session | null;
 }
 
 // 创建认证上下文
@@ -24,25 +27,46 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
  */
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [user, setUser] = useState<any | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const { toast } = useToast();
 
-  // 组件挂载时检查本地存储中的认证信息
+  // 初始化认证状态和监听变化
   useEffect(() => {
-    const token = localStorage.getItem('auth_token');
-    const storedUser = localStorage.getItem('user');
-    
-    if (token && storedUser) {
-      setIsAuthenticated(true);
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch (error) {
-        console.error('解析用户信息失败', error);
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('user');
+    // 设置认证状态监听器
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, newSession) => {
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
+        setIsAuthenticated(!!newSession);
+
+        // 对事件做出反应
+        if (event === 'SIGNED_IN') {
+          toast({
+            title: "登录成功",
+            description: `欢迎回来！`,
+          });
+        } else if (event === 'SIGNED_OUT') {
+          toast({
+            title: "已登出",
+            description: "您已成功退出系统",
+          });
+        }
       }
-    }
-  }, []);
+    );
+
+    // 获取当前会话状态
+    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      setSession(currentSession);
+      setUser(currentSession?.user ?? null);
+      setIsAuthenticated(!!currentSession);
+    });
+
+    // 清理订阅
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [toast]);
 
   /**
    * 登录方法
@@ -52,33 +76,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
    */
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      // TODO: 替换为后端API - 登录接口
-      // const response = await api.post('/auth/login', { email, password });
-      // const { token, user } = response.data;
-      
-      // 模拟成功响应
-      const token = 'mock_token_' + Date.now();
-      const mockUser = { id: '1', email, username: email.split('@')[0] };
-      
-      // 存储认证信息
-      localStorage.setItem('auth_token', token);
-      localStorage.setItem('user', JSON.stringify(mockUser));
-      
-      // 更新状态
-      setIsAuthenticated(true);
-      setUser(mockUser);
-      
-      toast({
-        title: "登录成功",
-        description: `欢迎回来，${mockUser.username}！`,
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password
       });
+
+      if (error) {
+        throw error;
+      }
       
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error('登录失败', error);
       toast({
         title: "登录失败",
-        description: "无法验证您的凭据，请重试",
+        description: error.message || "无法验证您的凭据，请重试",
         variant: "destructive",
       });
       return false;
@@ -94,33 +106,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
    */
   const register = async (username: string, email: string, password: string): Promise<boolean> => {
     try {
-      // TODO: 替换为后端API - 注册接口
-      // const response = await api.post('/auth/register', { username, email, password });
-      // const { token, user } = response.data;
-      
-      // 模拟成功响应
-      const token = 'mock_token_' + Date.now();
-      const mockUser = { id: '1', email, username };
-      
-      // 存储认证信息
-      localStorage.setItem('auth_token', token);
-      localStorage.setItem('user', JSON.stringify(mockUser));
-      
-      // 更新状态
-      setIsAuthenticated(true);
-      setUser(mockUser);
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            username,
+          },
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
       
       toast({
         title: "注册成功",
-        description: "您的账户已创建并登录成功！",
+        description: "您的账户已创建，请验证您的邮箱",
       });
       
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error('注册失败', error);
       toast({
         title: "注册失败",
-        description: "无法创建账户，请重试",
+        description: error.message || "无法创建账户，请重试",
         variant: "destructive",
       });
       return false;
@@ -130,22 +140,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   /**
    * 登出方法
    */
-  const logout = () => {
-    // TODO: 替换为后端API - 登出接口
-    // await api.post('/auth/logout');
+  const logout = async () => {
+    const { error } = await supabase.auth.signOut();
     
-    // 清除本地存储
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user');
-    
-    // 更新状态
-    setIsAuthenticated(false);
-    setUser(null);
-    
-    toast({
-      title: "已登出",
-      description: "您已成功退出系统",
-    });
+    if (error) {
+      console.error('登出失败', error);
+      toast({
+        title: "登出失败",
+        description: "退出系统时出现错误，请重试",
+        variant: "destructive",
+      });
+    }
   };
 
   // 提供认证上下文值
@@ -154,7 +159,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     login,
     register,
     logout,
-    user
+    user,
+    session
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
