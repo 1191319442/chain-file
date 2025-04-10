@@ -4,18 +4,36 @@
  * 提供文件选择、预览和上传功能
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Upload, X, Check, Loader2 } from "lucide-react";
+import { Upload, X, Loader2, AlertCircle } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/components/ui/use-toast";
+import { fiscoBcosService, calculateFileHash } from '@/services/fiscoBcosService';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useAuth } from '@/context/AuthContext';
 
 const FileUploader: React.FC = () => {
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [bcosConnected, setBcosConnected] = useState(false);
+  const [checkingConnection, setCheckingConnection] = useState(true);
   const { toast } = useToast();
+  const { user } = useAuth();
+
+  // 检查区块链连接状态
+  useEffect(() => {
+    const checkBcosConnection = async () => {
+      setCheckingConnection(true);
+      const connected = await fiscoBcosService.checkConnection();
+      setBcosConnected(connected);
+      setCheckingConnection(false);
+    };
+    
+    checkBcosConnection();
+  }, []);
 
   // 处理文件选择
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -32,7 +50,7 @@ const FileUploader: React.FC = () => {
     setFiles(newFiles);
   };
 
-  // TODO: 替换为后端API - 文件上传接口
+  // 文件上传到区块链
   const handleUpload = async () => {
     if (files.length === 0) {
       toast({
@@ -42,57 +60,46 @@ const FileUploader: React.FC = () => {
       return;
     }
 
+    if (!bcosConnected) {
+      toast({
+        title: "区块链连接失败",
+        description: "无法连接到FISCO BCOS节点，请检查网络连接",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setUploading(true);
     setProgress(0);
     
-    // 示例:
-    // try {
-    //   const formData = new FormData();
-    //   files.forEach((file) => {
-    //     formData.append('files', file);
-    //   });
-    //
-    //   // 使用支持进度报告的axios
-    //   const response = await api.post('/files/upload', formData, {
-    //     onUploadProgress: (progressEvent) => {
-    //       const percentCompleted = Math.round(
-    //         (progressEvent.loaded * 100) / progressEvent.total
-    //       );
-    //       setProgress(percentCompleted);
-    //     }
-    //   });
-    //
-    //   if (response.data.success) {
-    //     toast({
-    //       title: "文件上传成功",
-    //       description: `已成功上传 ${files.length} 个文件到区块链`,
-    //     });
-    //     setFiles([]);
-    //   }
-    // } catch (error) {
-    //   toast({
-    //     title: "上传失败",
-    //     description: error.message || "文件上传过程中发生错误",
-    //     variant: "destructive",
-    //   });
-    // } finally {
-    //   setUploading(false);
-    // }
-    
-    // 模拟上传进度
-    const interval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          return 100;
-        }
-        return prev + 10;
-      });
-    }, 500);
-
-    // 模拟上传延迟
-    setTimeout(() => {
-      clearInterval(interval);
+    try {
+      // 上传所有文件
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        // 更新进度
+        setProgress(Math.round((i / files.length) * 50));
+        
+        // 计算文件哈希
+        const fileHash = await calculateFileHash(file);
+        
+        // 准备文件信息
+        const fileInfo = {
+          name: file.name,
+          hash: fileHash,
+          size: `${(file.size / 1024).toFixed(2)} KB`,
+          owner: user?.email || '未知用户',
+          uploadDate: new Date().toISOString().split('T')[0],
+        };
+        
+        // 上传文件信息到区块链
+        const txHash = await fiscoBcosService.uploadFile(fileInfo);
+        console.log('文件上传成功，交易哈希:', txHash);
+        
+        // 更新进度
+        setProgress(50 + Math.round((i / files.length) * 50));
+      }
+      
+      // 完成所有上传
       setProgress(100);
       
       setTimeout(() => {
@@ -104,13 +111,68 @@ const FileUploader: React.FC = () => {
           variant: "default",
         });
       }, 500);
-    }, 3000);
+      
+    } catch (error: any) {
+      console.error('文件上传失败:', error);
+      setUploading(false);
+      toast({
+        title: "上传失败",
+        description: error.message || "文件上传过程中发生错误",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // 重试连接区块链
+  const handleRetryConnection = async () => {
+    setCheckingConnection(true);
+    const connected = await fiscoBcosService.checkConnection();
+    setBcosConnected(connected);
+    setCheckingConnection(false);
+    
+    if (connected) {
+      toast({
+        title: "连接成功",
+        description: "已成功连接到FISCO BCOS区块链节点",
+      });
+    } else {
+      toast({
+        title: "连接失败",
+        description: "无法连接到FISCO BCOS节点，请检查网络连接",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
     <Card className="w-full">
       <CardContent className="p-6">
         <div className="flex flex-col gap-4">
+          {!bcosConnected && !checkingConnection && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>区块链连接失败</AlertTitle>
+              <AlertDescription>
+                无法连接到FISCO BCOS节点，部分功能可能不可用。
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleRetryConnection}
+                  className="ml-2"
+                >
+                  重试连接
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {checkingConnection && (
+            <div className="flex items-center justify-center py-4">
+              <Loader2 className="h-6 w-6 animate-spin mr-2" />
+              <span>正在连接区块链节点...</span>
+            </div>
+          )}
+
           <div
             className={`border-2 border-dashed rounded-lg p-8 text-center ${
               files.length > 0 ? 'border-primary' : 'border-muted-foreground/30'
@@ -122,11 +184,13 @@ const FileUploader: React.FC = () => {
               multiple
               onChange={handleFileChange}
               className="hidden"
-              disabled={uploading}
+              disabled={uploading || (!bcosConnected && !checkingConnection)}
             />
             <label
               htmlFor="file-upload"
-              className="flex flex-col items-center justify-center cursor-pointer"
+              className={`flex flex-col items-center justify-center ${
+                (!bcosConnected && !checkingConnection) ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'
+              }`}
             >
               <Upload
                 className={`h-12 w-12 mb-4 ${
@@ -182,7 +246,7 @@ const FileUploader: React.FC = () => {
 
           <Button
             onClick={handleUpload}
-            disabled={files.length === 0 || uploading}
+            disabled={files.length === 0 || uploading || (!bcosConnected && !checkingConnection)}
             className="mt-4"
           >
             {uploading ? (
