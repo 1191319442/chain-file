@@ -6,13 +6,15 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Upload, X, Loader2, AlertCircle } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
+import { Upload, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { fiscoBcosService, calculateFileHash } from '@/services/fiscoBcosService';
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import BlockchainStatus from './BlockchainStatus';
+import UploadZone from './UploadZone';
+import FileList from './FileList';
+import UploadProgress from './UploadProgress';
 
 const FileUploader: React.FC = () => {
   const [files, setFiles] = useState<File[]>([]);
@@ -23,7 +25,6 @@ const FileUploader: React.FC = () => {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // 检查区块链连接状态
   useEffect(() => {
     const checkBcosConnection = async () => {
       setCheckingConnection(true);
@@ -35,7 +36,6 @@ const FileUploader: React.FC = () => {
     checkBcosConnection();
   }, []);
 
-  // 处理文件选择
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const newFiles = Array.from(e.target.files);
@@ -43,14 +43,32 @@ const FileUploader: React.FC = () => {
     }
   };
 
-  // 移除选择的文件
   const removeFile = (index: number) => {
     const newFiles = [...files];
     newFiles.splice(index, 1);
     setFiles(newFiles);
   };
 
-  // 文件上传到区块链和Supabase
+  const handleRetryConnection = async () => {
+    setCheckingConnection(true);
+    const connected = await fiscoBcosService.checkConnection();
+    setBcosConnected(connected);
+    setCheckingConnection(false);
+    
+    if (connected) {
+      toast({
+        title: "连接成功",
+        description: "已成功连接到FISCO BCOS区块链节点",
+      });
+    } else {
+      toast({
+        title: "连接失败",
+        description: "无法连接到FISCO BCOS节点，请检查网络连接",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleUpload = async () => {
     if (files.length === 0) {
       toast({
@@ -146,126 +164,32 @@ const FileUploader: React.FC = () => {
     }
   };
 
-  // 重试连接区块链
-  const handleRetryConnection = async () => {
-    setCheckingConnection(true);
-    const connected = await fiscoBcosService.checkConnection();
-    setBcosConnected(connected);
-    setCheckingConnection(false);
-    
-    if (connected) {
-      toast({
-        title: "连接成功",
-        description: "已成功连接到FISCO BCOS区块链节点",
-      });
-    } else {
-      toast({
-        title: "连接失败",
-        description: "无法连接到FISCO BCOS节点，请检查网络连接",
-        variant: "destructive",
-      });
-    }
-  };
-
   return (
     <Card className="w-full">
       <CardContent className="p-6">
         <div className="flex flex-col gap-4">
-          {!bcosConnected && !checkingConnection && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>区块链连接失败</AlertTitle>
-              <AlertDescription>
-                无法连接到FISCO BCOS节点，部分功能可能不可用。
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleRetryConnection}
-                  className="ml-2"
-                >
-                  重试连接
-                </Button>
-              </AlertDescription>
-            </Alert>
-          )}
+          <BlockchainStatus 
+            bcosConnected={bcosConnected}
+            checkingConnection={checkingConnection}
+            onRetryConnection={handleRetryConnection}
+          />
 
-          {checkingConnection && (
-            <div className="flex items-center justify-center py-4">
-              <Loader2 className="h-6 w-6 animate-spin mr-2" />
-              <span>正在连接区块链节点...</span>
-            </div>
-          )}
+          <UploadZone
+            filesCount={files.length}
+            disabled={uploading || (!bcosConnected && !checkingConnection)}
+            onChange={handleFileChange}
+          />
 
-          <div
-            className={`border-2 border-dashed rounded-lg p-8 text-center ${
-              files.length > 0 ? 'border-primary' : 'border-muted-foreground/30'
-            }`}
-          >
-            <input
-              type="file"
-              id="file-upload"
-              multiple
-              onChange={handleFileChange}
-              className="hidden"
-              disabled={uploading || (!bcosConnected && !checkingConnection)}
-            />
-            <label
-              htmlFor="file-upload"
-              className={`flex flex-col items-center justify-center ${
-                (!bcosConnected && !checkingConnection) ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'
-              }`}
-            >
-              <Upload
-                className={`h-12 w-12 mb-4 ${
-                  files.length > 0 ? 'text-primary' : 'text-muted-foreground/50'
-                }`}
-              />
-              <p className="text-lg font-medium text-foreground">点击或拖拽文件到此处</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                支持任何类型的文件, 最大支持 20MB
-              </p>
-            </label>
-          </div>
+          <FileList
+            files={files}
+            uploading={uploading}
+            onRemove={removeFile}
+          />
 
-          {files.length > 0 && (
-            <div className="mt-4">
-              <h3 className="font-medium mb-2">已选择 {files.length} 个文件</h3>
-              <div className="space-y-2">
-                {files.map((file, index) => (
-                  <div
-                    key={`${file.name}-${index}`}
-                    className="flex items-center justify-between bg-muted p-2 rounded"
-                  >
-                    <div className="truncate flex-1 text-sm">
-                      {file.name} ({(file.size / 1024).toFixed(2)} KB)
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeFile(index)}
-                      disabled={uploading}
-                      className="h-8 w-8"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {uploading && (
-            <div className="mt-4">
-              <div className="flex justify-between text-sm mb-1">
-                <span>上传进度</span>
-                <span>{progress}%</span>
-              </div>
-              <Progress value={progress} className="h-2" />
-              <p className="text-xs text-muted-foreground mt-1">
-                正在将文件上传至区块链...
-              </p>
-            </div>
-          )}
+          <UploadProgress
+            uploading={uploading}
+            progress={progress}
+          />
 
           <Button
             onClick={handleUpload}
