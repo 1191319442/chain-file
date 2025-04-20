@@ -21,11 +21,17 @@ import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 // 创建React Query客户端实例
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5分钟
+      retry: 1,
+    },
+  },
+});
 
 /**
  * 应用根组件
- * 配置全局提供器和路由系统
  */
 const App = () => (
   <QueryClientProvider client={queryClient}>

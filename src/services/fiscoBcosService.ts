@@ -5,7 +5,6 @@ import CryptoJS from 'crypto-js';
 
 // FISCO BCOS节点配置
 const FISCO_CONFIG = {
-  // 这些配置应该从环境变量或配置文件中获取
   rpcUrl: 'http://localhost:8545', // FISCO BCOS节点RPC地址
   groupId: 1,                     // 群组ID
   chainId: 1,                     // 链ID
@@ -13,8 +12,6 @@ const FISCO_CONFIG = {
 
 /**
  * 计算文件的SHA-256哈希值
- * @param file 文件对象
- * @returns 返回Promise，解析为文件的哈希值
  */
 export const calculateFileHash = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -54,11 +51,9 @@ class FiscoBcosService {
   
   /**
    * 检查与区块链的连接状态
-   * @returns 返回Promise，解析为连接状态
    */
   async checkConnection(): Promise<boolean> {
     try {
-      // 尝试从节点获取区块号来验证连接
       await axios.post(FISCO_CONFIG.rpcUrl, {
         jsonrpc: '2.0',
         method: 'getBlockNumber',
@@ -85,8 +80,6 @@ class FiscoBcosService {
   
   /**
    * 上传文件信息到区块链
-   * @param fileInfo 文件信息对象
-   * @returns 返回Promise，解析为交易哈希
    */
   async uploadFile(fileInfo: {
     name: string;
@@ -103,8 +96,6 @@ class FiscoBcosService {
         }
       }
       
-      // 在实际应用中，这里应该调用智能合约
-      // 这里我们模拟上传成功，返回一个模拟的交易哈希
       console.log('文件信息上传到区块链:', fileInfo);
       const simulatedTxHash = `0x${CryptoJS.SHA256(JSON.stringify(fileInfo)).toString()}`;
       
@@ -117,8 +108,6 @@ class FiscoBcosService {
   
   /**
    * 从区块链获取文件信息
-   * @param fileHash 文件哈希
-   * @returns 返回Promise，解析为文件信息
    */
   async getFileInfo(fileHash: string): Promise<any> {
     try {
@@ -129,14 +118,9 @@ class FiscoBcosService {
         }
       }
       
-      // 在实际应用中，这里应该调用智能合约
-      // 这里我们返回一个模拟的文件信息
       console.log('从区块链获取文件信息:', fileHash);
-      
-      // 模拟延迟
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      // 这里返回模拟数据，实际应用中应该从区块链获取
       return {
         name: "模拟文件.pdf",
         hash: fileHash,
@@ -154,8 +138,6 @@ class FiscoBcosService {
   
   /**
    * 获取区块信息
-   * @param blockNumber 区块号
-   * @returns 返回Promise，解析为区块信息
    */
   async getBlockInfo(blockNumber: number): Promise<any> {
     try {
@@ -166,13 +148,9 @@ class FiscoBcosService {
         }
       }
       
-      // 在实际应用中，这里应该调用Web3 API获取区块信息
       console.log('获取区块信息:', blockNumber);
-      
-      // 模拟延迟
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      // 这里返回模拟数据，实际应用中应该从区块链获取
       return {
         blockNumber,
         timestamp: new Date().toISOString(),

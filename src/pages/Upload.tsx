@@ -4,28 +4,16 @@
  * 提供用户上传文件到区块链的功能
  */
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import FileUploader from '@/components/dashboard/FileUploader';
-import { fiscoBcosService } from '@/services/fiscoBcosService';
 import { Badge } from '@/components/ui/badge';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useBlockchain } from '@/hooks/useBlockchain';
 
 const Upload: React.FC = () => {
-  const [bcosConnected, setBcosConnected] = useState(false);
-  const [checkingConnection, setCheckingConnection] = useState(true);
-
-  useEffect(() => {
-    const checkBcosConnection = async () => {
-      setCheckingConnection(true);
-      const connected = await fiscoBcosService.checkConnection();
-      setBcosConnected(connected);
-      setCheckingConnection(false);
-    };
-    
-    checkBcosConnection();
-  }, []);
+  const { bcosConnected, checkingConnection } = useBlockchain();
 
   return (
     <MainLayout>
