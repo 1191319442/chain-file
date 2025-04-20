@@ -9,6 +9,83 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      blockchain_transactions: {
+        Row: {
+          block_number: number | null
+          created_at: string | null
+          file_id: string
+          id: string
+          status: string
+          tx_hash: string
+          updated_at: string | null
+        }
+        Insert: {
+          block_number?: number | null
+          created_at?: string | null
+          file_id: string
+          id?: string
+          status: string
+          tx_hash: string
+          updated_at?: string | null
+        }
+        Update: {
+          block_number?: number | null
+          created_at?: string | null
+          file_id?: string
+          id?: string
+          status?: string
+          tx_hash?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blockchain_transactions_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "files"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      files: {
+        Row: {
+          block_number: number | null
+          content_type: string | null
+          created_at: string | null
+          hash: string
+          id: string
+          name: string
+          size: string
+          tx_hash: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          block_number?: number | null
+          content_type?: string | null
+          created_at?: string | null
+          hash: string
+          id?: string
+          name: string
+          size: string
+          tx_hash?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          block_number?: number | null
+          content_type?: string | null
+          created_at?: string | null
+          hash?: string
+          id?: string
+          name?: string
+          size?: string
+          tx_hash?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null

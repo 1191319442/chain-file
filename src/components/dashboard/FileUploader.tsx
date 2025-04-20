@@ -1,4 +1,3 @@
-
 /**
  * 文件上传组件
  * 提供文件选择、预览和上传功能
@@ -13,6 +12,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { fiscoBcosService, calculateFileHash } from '@/services/fiscoBcosService';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useAuth } from '@/context/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 const FileUploader: React.FC = () => {
   const [files, setFiles] = useState<File[]>([]);
@@ -50,7 +50,7 @@ const FileUploader: React.FC = () => {
     setFiles(newFiles);
   };
 
-  // 文件上传到区块链
+  // 文件上传到区块链和Supabase
   const handleUpload = async () => {
     if (files.length === 0) {
       toast({
@@ -73,16 +73,14 @@ const FileUploader: React.FC = () => {
     setProgress(0);
     
     try {
-      // 上传所有文件
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        // 更新进度
-        setProgress(Math.round((i / files.length) * 50));
+        setProgress(Math.round((i / files.length) * 30));
         
         // 计算文件哈希
         const fileHash = await calculateFileHash(file);
         
-        // 准备文件信息
+        // 上传文件信息到区块链
         const fileInfo = {
           name: file.name,
           hash: fileHash,
@@ -91,15 +89,40 @@ const FileUploader: React.FC = () => {
           uploadDate: new Date().toISOString().split('T')[0],
         };
         
-        // 上传文件信息到区块链
+        // 将文件信息上传到区块链
         const txHash = await fiscoBcosService.uploadFile(fileInfo);
-        console.log('文件上传成功，交易哈希:', txHash);
+        setProgress(30 + Math.round((i / files.length) * 30));
+
+        // 将文件信息保存到Supabase
+        const { data: fileData, error: fileError } = await supabase
+          .from('files')
+          .insert({
+            name: file.name,
+            size: `${(file.size / 1024).toFixed(2)} KB`,
+            hash: fileHash,
+            content_type: file.type,
+            tx_hash: txHash,
+            user_id: user?.id
+          })
+          .select()
+          .single();
+
+        if (fileError) throw fileError;
+
+        // 记录区块链交易
+        const { error: txError } = await supabase
+          .from('blockchain_transactions')
+          .insert({
+            tx_hash: txHash,
+            file_id: fileData.id,
+            status: 'pending'
+          });
+
+        if (txError) throw txError;
         
-        // 更新进度
-        setProgress(50 + Math.round((i / files.length) * 50));
+        setProgress(60 + Math.round((i / files.length) * 40));
       }
       
-      // 完成所有上传
       setProgress(100);
       
       setTimeout(() => {
@@ -107,7 +130,7 @@ const FileUploader: React.FC = () => {
         setFiles([]);
         toast({
           title: "文件上传成功",
-          description: `已成功上传 ${files.length} 个文件到区块链`,
+          description: `已成功上传 ${files.length} 个文件`,
           variant: "default",
         });
       }, 500);
