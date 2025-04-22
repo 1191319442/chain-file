@@ -1,126 +1,37 @@
-
 import React, { useState } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import TransactionCard, { Transaction } from '@/components/blockchain/TransactionCard';
+import TransactionCard from '@/components/blockchain/TransactionCard';
 import { Input } from "@/components/ui/input";
-import { Search, Database } from "lucide-react";
-
-const MOCK_TRANSACTIONS: Transaction[] = [
-  {
-    id: '1',
-    type: 'upload',
-    timestamp: '2025-04-08 14:32:15',
-    fileName: '项目方案.pdf',
-    fileHash: '0x8f5e1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f',
-    user: '当前用户',
-    status: 'confirmed',
-    blockNumber: 3856201
-  },
-  {
-    id: '2',
-    type: 'share',
-    timestamp: '2025-04-08 15:45:22',
-    fileName: '项目方案.pdf',
-    fileHash: '0x8f5e1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f',
-    user: '当前用户',
-    status: 'confirmed',
-    blockNumber: 3856230
-  },
-  {
-    id: '3',
-    type: 'upload',
-    timestamp: '2025-04-07 10:12:05',
-    fileName: '会议记录.docx',
-    fileHash: '0x7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b',
-    user: '当前用户',
-    status: 'confirmed',
-    blockNumber: 3855978
-  },
-  {
-    id: '4',
-    type: 'verification',
-    timestamp: '2025-04-07 16:27:33',
-    fileName: '会议记录.docx',
-    fileHash: '0x7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b',
-    user: '系统',
-    status: 'confirmed',
-    blockNumber: 3856023
-  },
-  {
-    id: '5',
-    type: 'download',
-    timestamp: '2025-04-06 11:52:48',
-    fileName: '产品设计图.png',
-    fileHash: '0x6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e',
-    user: '王五',
-    status: 'confirmed',
-    blockNumber: 3855789
-  },
-  {
-    id: '6',
-    type: 'upload',
-    timestamp: '2025-04-04 09:38:11',
-    fileName: '系统文档.pdf',
-    fileHash: '0x4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c',
-    user: '当前用户',
-    status: 'pending'
-  },
-];
-
-// 块数据
-const MOCK_BLOCKS = [
-  {
-    blockNumber: 3856201,
-    timestamp: '2025-04-08 14:32:20',
-    transactions: 12,
-    size: '2.3 KB',
-    hash: '0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b'
-  },
-  {
-    blockNumber: 3856230,
-    timestamp: '2025-04-08 15:45:30',
-    transactions: 8,
-    size: '1.8 KB',
-    hash: '0x2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c'
-  },
-  {
-    blockNumber: 3855978,
-    timestamp: '2025-04-07 10:12:15',
-    transactions: 15,
-    size: '3.1 KB',
-    hash: '0x3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d'
-  },
-  {
-    blockNumber: 3856023,
-    timestamp: '2025-04-07 16:27:45',
-    transactions: 10,
-    size: '2.0 KB',
-    hash: '0x4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e'
-  },
-  {
-    blockNumber: 3855789,
-    timestamp: '2025-04-06 11:53:00',
-    transactions: 9,
-    size: '1.9 KB',
-    hash: '0x5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f'
-  }
-];
+import { Search, Database, Loader2 } from "lucide-react";
+import { useBlockchainData } from '@/hooks/useBlockchainData';
 
 const Blockchain: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
+  const { transactions, blocks, loading } = useBlockchainData();
 
-  const filteredTransactions = MOCK_TRANSACTIONS.filter(
+  const filteredTransactions = transactions.filter(
     (tx) => tx.fileName.toLowerCase().includes(searchQuery.toLowerCase()) ||
             tx.fileHash.toLowerCase().includes(searchQuery.toLowerCase()) ||
             tx.user.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const filteredBlocks = MOCK_BLOCKS.filter(
+  const filteredBlocks = blocks.filter(
     (block) => block.hash.toLowerCase().includes(searchQuery.toLowerCase()) ||
                block.blockNumber.toString().includes(searchQuery)
   );
+
+  if (loading) {
+    return (
+      <MainLayout>
+        <div className="flex items-center justify-center h-[50vh]">
+          <Loader2 className="h-8 w-8 animate-spin" />
+          <span className="ml-2">加载区块链数据中...</span>
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>
