@@ -46,7 +46,7 @@ export const useBlockchainData = () => {
         fileName: tx.files?.name || '未知文件',
         fileHash: tx.files?.hash || tx.tx_hash,
         user: tx.files?.user_id || '未知用户',
-        status: tx.status,
+        status: tx.status === 'confirmed' ? 'confirmed' : 'pending',
         blockNumber: tx.block_number
       }));
 

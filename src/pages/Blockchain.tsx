@@ -1,11 +1,12 @@
+
 import React, { useState } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import TransactionCard from '@/components/blockchain/TransactionCard';
-import { Input } from "@/components/ui/input";
-import { Search, Database, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useBlockchainData } from '@/hooks/useBlockchainData';
+import TransactionsList from '@/components/blockchain/TransactionsList';
+import BlocksList from '@/components/blockchain/BlocksList';
+import BlockchainSearch from '@/components/blockchain/BlockchainSearch';
 
 const Blockchain: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -43,16 +44,7 @@ const Blockchain: React.FC = () => {
           </p>
         </div>
 
-        <div className="relative flex mb-6 max-w-md">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-          <Input
-            type="text"
-            placeholder="搜索文件名、哈希、用户或区块..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
-        </div>
+        <BlockchainSearch value={searchQuery} onChange={setSearchQuery} />
 
         <Tabs defaultValue="transactions" className="w-full">
           <TabsList className="mb-6">
@@ -61,63 +53,11 @@ const Blockchain: React.FC = () => {
           </TabsList>
 
           <TabsContent value="transactions">
-            {filteredTransactions.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground">没有找到匹配的交易记录</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredTransactions.map((transaction) => (
-                  <TransactionCard
-                    key={transaction.id}
-                    transaction={transaction}
-                  />
-                ))}
-              </div>
-            )}
+            <TransactionsList transactions={filteredTransactions} />
           </TabsContent>
 
           <TabsContent value="blocks">
-            {filteredBlocks.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground">没有找到匹配的区块信息</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {filteredBlocks.map((block) => (
-                  <Card key={block.blockNumber}>
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center gap-2">
-                        <Database className="h-5 w-5 text-primary" />
-                        <CardTitle className="text-base">
-                          区块 #{block.blockNumber}
-                        </CardTitle>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-sm space-y-2">
-                        <p>
-                          <span className="text-muted-foreground">时间戳：</span>
-                          {block.timestamp}
-                        </p>
-                        <p>
-                          <span className="text-muted-foreground">交易数量：</span>
-                          {block.transactions}
-                        </p>
-                        <p>
-                          <span className="text-muted-foreground">区块大小：</span>
-                          {block.size}
-                        </p>
-                        <p className="truncate">
-                          <span className="text-muted-foreground">区块哈希：</span>
-                          {block.hash}
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
+            <BlocksList blocks={filteredBlocks} />
           </TabsContent>
         </Tabs>
       </div>
