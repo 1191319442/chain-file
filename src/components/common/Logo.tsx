@@ -1,4 +1,3 @@
-
 /**
  * 应用 Logo 组件
  */
@@ -46,9 +45,9 @@ const Logo: React.FC<LogoProps> = ({ size = "medium", showText = true }) => {
       </div>
       {showText && (
         <>
-          <h2 className={`mt-6 ${getTextClass()} font-bold text-gray-900`}>链文件系统</h2>
+          <h2 className={`mt-6 ${getTextClass()} font-bold text-gray-900`}>区块链文件追踪与共享系统</h2>
           <p className="mt-2 text-sm text-gray-600">
-            安全、透明的区块链文件管理平台
+            安全、透明的文件管理与区块链追溯平台
           </p>
         </>
       )}

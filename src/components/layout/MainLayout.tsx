@@ -1,4 +1,3 @@
-
 /**
  * 主布局组件
  * 提供应用的整体布局结构，包括顶部导航栏和侧边栏
@@ -98,7 +97,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             <div className="bg-primary-500 text-white p-1 rounded">
               <FileText size={24} />
             </div>
-            <h1 className="text-xl font-bold text-primary-500">链文件系统</h1>
+            <h1 className="text-xl font-bold text-primary-500">区块链文件追踪系统</h1>
           </Link>
         </div>
         <div className="flex items-center gap-2">
