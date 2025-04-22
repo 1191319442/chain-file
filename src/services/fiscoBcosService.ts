@@ -1,18 +1,8 @@
 
-import Web3 from 'web3';
-import axios from 'axios';
 import CryptoJS from 'crypto-js';
+import apiClient from '../api/apiClient';
 
-// FISCO BCOS节点配置
-const FISCO_CONFIG = {
-  rpcUrl: 'http://localhost:8545', // FISCO BCOS节点RPC地址
-  groupId: 1,                     // 群组ID
-  chainId: 1,                     // 链ID
-};
-
-/**
- * 计算文件的SHA-256哈希值
- */
+// 计算文件的SHA-256哈希值
 export const calculateFileHash = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -35,35 +25,29 @@ export const calculateFileHash = (file: File): Promise<string> => {
   });
 };
 
+export type FileInfo = {
+  name: string;
+  hash: string;
+  size: string;
+  owner: string;
+  uploadDate: string;
+};
+
 /**
  * FISCO BCOS服务类
- * 提供与区块链交互的方法
+ * 通过SpringBoot后端与区块链交互
  */
 class FiscoBcosService {
-  private web3: Web3;
   private isConnected: boolean = false;
-  
-  constructor() {
-    // 初始化Web3实例
-    this.web3 = new Web3(FISCO_CONFIG.rpcUrl);
-    this.checkConnection();
-  }
   
   /**
    * 检查与区块链的连接状态
    */
   async checkConnection(): Promise<boolean> {
     try {
-      await axios.post(FISCO_CONFIG.rpcUrl, {
-        jsonrpc: '2.0',
-        method: 'getBlockNumber',
-        params: [FISCO_CONFIG.groupId],
-        id: 1
-      });
-      
-      this.isConnected = true;
-      console.log('成功连接到FISCO BCOS节点');
-      return true;
+      const response = await apiClient.get('/blockchain/status');
+      this.isConnected = response.data.connected;
+      return this.isConnected;
     } catch (error) {
       console.error('连接FISCO BCOS节点失败:', error);
       this.isConnected = false;
@@ -81,13 +65,7 @@ class FiscoBcosService {
   /**
    * 上传文件信息到区块链
    */
-  async uploadFile(fileInfo: {
-    name: string;
-    hash: string;
-    size: string;
-    owner: string;
-    uploadDate: string;
-  }): Promise<string> {
+  async uploadFile(fileInfo: FileInfo): Promise<string> {
     try {
       if (!this.isConnected) {
         await this.checkConnection();
@@ -96,10 +74,8 @@ class FiscoBcosService {
         }
       }
       
-      console.log('文件信息上传到区块链:', fileInfo);
-      const simulatedTxHash = `0x${CryptoJS.SHA256(JSON.stringify(fileInfo)).toString()}`;
-      
-      return simulatedTxHash;
+      const response = await apiClient.post('/blockchain/file', fileInfo);
+      return response.data.txHash;
     } catch (error: any) {
       console.error('上传文件到区块链失败:', error);
       throw new Error(`上传文件到区块链失败: ${error.message}`);
@@ -118,18 +94,8 @@ class FiscoBcosService {
         }
       }
       
-      console.log('从区块链获取文件信息:', fileHash);
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      return {
-        name: "模拟文件.pdf",
-        hash: fileHash,
-        size: "1.2 MB",
-        owner: "当前用户",
-        uploadDate: new Date().toISOString().split('T')[0],
-        blockNumber: 12345,
-        status: 'confirmed'
-      };
+      const response = await apiClient.get(`/blockchain/file/${fileHash}`);
+      return response.data;
     } catch (error: any) {
       console.error('从区块链获取文件信息失败:', error);
       throw new Error(`从区块链获取文件信息失败: ${error.message}`);
@@ -148,16 +114,8 @@ class FiscoBcosService {
         }
       }
       
-      console.log('获取区块信息:', blockNumber);
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      return {
-        blockNumber,
-        timestamp: new Date().toISOString(),
-        transactions: Math.floor(Math.random() * 20) + 1,
-        size: `${(Math.random() * 5).toFixed(1)} KB`,
-        hash: `0x${CryptoJS.SHA256(blockNumber.toString()).toString().substring(0, 40)}`
-      };
+      const response = await apiClient.get(`/blockchain/block/${blockNumber}`);
+      return response.data;
     } catch (error: any) {
       console.error('获取区块信息失败:', error);
       throw new Error(`获取区块信息失败: ${error.message}`);

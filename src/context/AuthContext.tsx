@@ -1,3 +1,4 @@
+
 /**
  * 认证上下文组件
  * 管理用户登录状态和认证相关功能
@@ -5,8 +6,7 @@
 
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { Session, User } from '@supabase/supabase-js';
+import { AuthService, User, Session } from "@/api/authService";
 
 // 认证上下文类型定义
 interface AuthContextType {
@@ -34,39 +34,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // 初始化认证状态和监听变化
   useEffect(() => {
     // 设置认证状态监听器
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, newSession) => {
-        setSession(newSession);
-        setUser(newSession?.user ?? null);
-        setIsAuthenticated(!!newSession);
+    const unsubscribe = AuthService.addListener((newSession) => {
+      setSession(newSession);
+      setUser(newSession?.user ?? null);
+      setIsAuthenticated(!!newSession);
 
-        // 对事件做出反应
-        if (event === 'SIGNED_IN') {
-          toast({
-            title: "登录成功",
-            description: `欢迎回来！`,
-          });
-        } else if (event === 'SIGNED_OUT') {
-          toast({
-            title: "已登出",
-            description: "您已成功退出系统",
-          });
-        }
+      // 对状态变化做出反应
+      if (newSession && !session) {
+        toast({
+          title: "登录成功",
+          description: `欢迎回来！`,
+        });
+      } else if (!newSession && session) {
+        toast({
+          title: "已登出",
+          description: "您已成功退出系统",
+        });
       }
-    );
-
-    // 获取当前会话状态
-    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
-      setIsAuthenticated(!!currentSession);
     });
 
     // 清理订阅
     return () => {
-      subscription.unsubscribe();
+      unsubscribe();
     };
-  }, [toast]);
+  }, [toast, session]);
 
   /**
    * 更新用户资料
@@ -77,15 +68,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       if (!user) throw new Error("用户未登录");
       
-      const { error } = await supabase
-        .from('profiles')
-        .update({ 
-          ...data,
-          updated_at: new Date().toISOString() 
-        })
-        .eq('id', user.id);
+      const success = await AuthService.updateProfile(data);
       
-      if (error) throw error;
+      if (!success) throw new Error("更新失败");
       
       return true;
     } catch (error: any) {
@@ -107,13 +92,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
    */
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-
-      if (error) {
-        throw error;
+      const success = await AuthService.login(email, password);
+      
+      if (!success) {
+        throw new Error("邮箱或密码不正确");
       }
       
       return true;
@@ -137,23 +119,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
    */
   const register = async (username: string, email: string, password: string): Promise<boolean> => {
     try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            username,
-          },
-        }
-      });
+      const success = await AuthService.register(username, email, password);
 
-      if (error) {
-        throw error;
+      if (!success) {
+        throw new Error("注册失败");
       }
       
       toast({
         title: "注册成功",
-        description: "您的账户已创建，请验证您的邮箱",
+        description: "您的账户已创建，请登录",
       });
       
       return true;
@@ -172,9 +146,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
    * 登出方法
    */
   const logout = async () => {
-    const { error } = await supabase.auth.signOut();
-    
-    if (error) {
+    try {
+      await AuthService.logout();
+    } catch (error: any) {
       console.error('登出失败', error);
       toast({
         title: "登出失败",
