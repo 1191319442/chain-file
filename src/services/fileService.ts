@@ -213,9 +213,11 @@ export class FileService {
     
     return (data || []).map(item => {
       // 处理可能的关联查询错误，添加null检查
-      const ownerName = item.profiles && typeof item.profiles === 'object' 
-        ? item.profiles.username 
-        : undefined;
+      const ownerName = item.profiles && 
+        typeof item.profiles === 'object' && 
+        'username' in item.profiles 
+          ? (item.profiles as { username?: string }).username
+          : undefined;
         
       return {
         id: item.id,
