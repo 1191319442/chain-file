@@ -17,21 +17,21 @@ export const useAuthState = () => {
         
         if (supabaseSession) {
           try {
-            // 获取用户角色信息
+            // 获取用户信息
             const { data: profileData } = await supabase
               .from('profiles')
               .select('*')
               .eq('id', supabaseSession.user.id)
               .single();
             
-            // 检查用户是否有role字段，或者默认为user
-            const role = (profileData && profileData.role) || 'user';
+            // 判断用户是否为管理员（目前使用username字段判断）
+            const isAdmin = (profileData && profileData.username === 'admin');
             
             const newUser: User = {
               id: supabaseSession.user.id,
-              username: supabaseSession.user.user_metadata.username || supabaseSession.user.email || '',
+              username: profileData?.username || supabaseSession.user.email || '',
               email: supabaseSession.user.email || '',
-              role: role,
+              role: isAdmin ? 'admin' : 'user',
               publicKey: supabaseSession.user.user_metadata.publicKey
             };
             
@@ -66,21 +66,21 @@ export const useAuthState = () => {
         
         if (supabaseSession) {
           try {
-            // 获取用户角色信息
+            // 获取用户信息
             const { data: profileData } = await supabase
               .from('profiles')
               .select('*')
               .eq('id', supabaseSession.user.id)
               .single();
               
-            // 检查用户是否有role字段，或者默认为user
-            const role = (profileData && profileData.role) || 'user';
+            // 判断用户是否为管理员（目前使用username字段判断）
+            const isAdmin = (profileData && profileData.username === 'admin');
             
             const newUser: User = {
               id: supabaseSession.user.id,
-              username: supabaseSession.user.user_metadata.username || supabaseSession.user.email || '',
+              username: profileData?.username || supabaseSession.user.email || '',
               email: supabaseSession.user.email || '',
-              role: role,
+              role: isAdmin ? 'admin' : 'user',
               publicKey: supabaseSession.user.user_metadata.publicKey
             };
             

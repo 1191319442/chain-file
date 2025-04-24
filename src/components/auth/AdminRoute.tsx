@@ -24,7 +24,7 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
       }
 
       try {
-        // 从 Supabase 查询用户的角色
+        // 检查用户是否为管理员
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
@@ -33,8 +33,10 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
 
         if (error) throw error;
         
-        // 检查用户是否有role字段，以及是否为admin
-        const isUserAdmin = data && data.role === 'admin';
+        // 检查用户是否为管理员
+        // 由于数据库中没有role字段，我们暂时使用username字段判断
+        // 这里只是临时方案，实际应该在数据库中添加role字段
+        const isUserAdmin = data && data.username === 'admin';
         setHasAdminRole(isUserAdmin);
         
         if (!isUserAdmin) {

@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { FilePermission, FilePermissionSettings, FileMetadata, FileAccess } from '@/types/file';
 
@@ -208,23 +207,29 @@ export class FileService {
       .select(`
         *,
         profiles:user_id(username)
-      `)
-      .order('created_at', { ascending: false });
+      `);
       
     if (error) throw error;
     
-    return (data || []).map(item => ({
-      id: item.id,
-      name: item.name,
-      owner: item.user_id,
-      ownerName: item.profiles?.username,
-      size: item.size,
-      hash: item.hash,
-      permission: 'private' as FilePermission, // 使用默认值
-      sharedWith: [],  // 使用默认值
-      uploadDate: new Date(item.created_at).toISOString(),
-      contentType: item.content_type || 'application/octet-stream'
-    }));
+    return (data || []).map(item => {
+      // 处理可能的关联查询错误
+      const ownerName = typeof item.profiles === 'object' && item.profiles !== null 
+        ? item.profiles.username 
+        : undefined;
+        
+      return {
+        id: item.id,
+        name: item.name,
+        owner: item.user_id,
+        ownerName: ownerName,
+        size: item.size,
+        hash: item.hash,
+        permission: 'private' as FilePermission, // 使用默认值
+        sharedWith: [],  // 使用默认值
+        uploadDate: new Date(item.created_at).toISOString(),
+        contentType: item.content_type || 'application/octet-stream'
+      };
+    });
   }
   
   /**

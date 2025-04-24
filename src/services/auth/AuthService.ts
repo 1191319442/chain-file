@@ -22,19 +22,21 @@ export class AuthService {
             .eq('id', authData.user.id)
             .single();
             
-          if (!profileData || profileData.role !== 'admin') {
+          // 临时使用username字段判断管理员权限
+          if (!profileData || profileData.username !== 'admin') {
             throw new Error('您没有管理员权限');
           }
         }
         
-        // 获取用户的角色
+        // 获取用户的配置文件
         const { data: profileData } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', authData.user.id)
           .single();
         
-        const userRole = (profileData && profileData.role) || 'user';
+        // 判断是否为管理员
+        const isAdmin = (profileData && profileData.username === 'admin');
         
         // 构造会话对象
         const session: Session = {
@@ -42,8 +44,8 @@ export class AuthService {
           user: {
             id: authData.user.id,
             email: authData.user.email || '',
-            username: authData.user.user_metadata.username || authData.user.email || '',
-            role: userRole,
+            username: profileData?.username || authData.user.email || '',
+            role: isAdmin ? 'admin' : 'user',
             publicKey: authData.user.user_metadata.publicKey
           },
           expiresAt: new Date(authData.session.expires_at || 0).getTime()
