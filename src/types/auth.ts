@@ -1,4 +1,3 @@
-
 export type UserRole = 'admin' | 'user';
 
 export interface User {
@@ -18,6 +17,7 @@ export interface Session {
 export interface LoginCredentials {
   email: string;
   password: string;
+  isAdmin?: boolean;
 }
 
 export interface RegisterData {

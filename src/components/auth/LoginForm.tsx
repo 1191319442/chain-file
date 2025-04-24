@@ -1,6 +1,3 @@
-/**
- * 登录表单组件
- */
 
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
@@ -8,9 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CardContent, CardFooter } from "@/components/ui/card";
-import { Mail, Lock, Loader2 } from "lucide-react";
+import { Mail, Lock, Loader2, User } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { LoginCredentials } from '@/types/auth';
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface LoginFormProps {
   isLoading: boolean;
@@ -20,19 +18,18 @@ interface LoginFormProps {
 const LoginForm: React.FC<LoginFormProps> = ({ isLoading, setIsLoading }) => {
   const { login } = useAuth();
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [isAdminLogin, setIsAdminLogin] = useState(false);
   const [loginForm, setLoginForm] = useState<LoginCredentials>({
     email: '',
     password: ''
   });
 
-  // 处理登录表单变化
   const handleLoginChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setLoginForm(prev => ({ ...prev, [name]: value }));
-    setLoginError(null); // 清除错误消息
+    setLoginError(null);
   };
 
-  // 处理登录提交
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError(null);
@@ -45,9 +42,13 @@ const LoginForm: React.FC<LoginFormProps> = ({ isLoading, setIsLoading }) => {
     setIsLoading(true);
     
     try {
-      const success = await login(loginForm);
+      const success = await login({
+        ...loginForm,
+        isAdmin: isAdminLogin
+      });
+      
       if (!success) {
-        setLoginError("登录失败，请检查您的邮箱和密码");
+        setLoginError(isAdminLogin ? "管理员登录失败" : "登录失败，请检查您的邮箱和密码");
       }
     } finally {
       setIsLoading(false);
@@ -62,6 +63,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ isLoading, setIsLoading }) => {
             <AlertDescription>{loginError}</AlertDescription>
           </Alert>
         )}
+        
         <div className="space-y-2">
           <Label htmlFor="login-email">邮箱</Label>
           <div className="relative">
@@ -78,6 +80,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ isLoading, setIsLoading }) => {
             />
           </div>
         </div>
+        
         <div className="space-y-2">
           <Label htmlFor="login-password">密码</Label>
           <div className="relative">
@@ -94,15 +97,25 @@ const LoginForm: React.FC<LoginFormProps> = ({ isLoading, setIsLoading }) => {
             />
           </div>
         </div>
+
+        <div className="flex items-center space-x-2">
+          <Checkbox 
+            id="admin-login"
+            checked={isAdminLogin}
+            onCheckedChange={(checked) => setIsAdminLogin(checked as boolean)}
+          />
+          <Label htmlFor="admin-login">管理员登录</Label>
+        </div>
       </CardContent>
+      
       <CardFooter>
         <Button type="submit" className="w-full" disabled={isLoading}>
           {isLoading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              登录中...
+              {isAdminLogin ? '管理员登录中...' : '登录中...'}
             </>
-          ) : "登录"}
+          ) : (isAdminLogin ? '管理员登录' : '登录')}
         </Button>
       </CardFooter>
     </form>
