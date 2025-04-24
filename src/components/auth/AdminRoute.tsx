@@ -27,13 +27,14 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
         // 从 Supabase 查询用户的角色
         const { data, error } = await supabase
           .from('profiles')
-          .select('role')
+          .select('*')
           .eq('id', user.id)
           .single();
 
         if (error) throw error;
         
-        const isUserAdmin = data?.role === 'admin';
+        // 检查用户是否有role字段，以及是否为admin
+        const isUserAdmin = data && data.role === 'admin';
         setHasAdminRole(isUserAdmin);
         
         if (!isUserAdmin) {

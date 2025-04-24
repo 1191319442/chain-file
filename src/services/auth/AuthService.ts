@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { SessionManager } from './SessionManager';
 import { User, Session, LoginCredentials, RegisterData } from '@/types/auth';
@@ -19,7 +18,7 @@ export class AuthService {
         if (credentials.isAdmin) {
           const { data: profileData } = await supabase
             .from('profiles')
-            .select('role')
+            .select('*')
             .eq('id', authData.user.id)
             .single();
             
@@ -28,6 +27,15 @@ export class AuthService {
           }
         }
         
+        // 获取用户的角色
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', authData.user.id)
+          .single();
+        
+        const userRole = (profileData && profileData.role) || 'user';
+        
         // 构造会话对象
         const session: Session = {
           token: authData.session.access_token,
@@ -35,7 +43,7 @@ export class AuthService {
             id: authData.user.id,
             email: authData.user.email || '',
             username: authData.user.user_metadata.username || authData.user.email || '',
-            role: credentials.isAdmin ? 'admin' : 'user',
+            role: userRole,
             publicKey: authData.user.user_metadata.publicKey
           },
           expiresAt: new Date(authData.session.expires_at || 0).getTime()
