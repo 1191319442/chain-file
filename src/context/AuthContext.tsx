@@ -36,8 +36,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const newSession = await AuthService.login(credentials);
       if (newSession) {
-        setSession(newSession);
-        setUser(newSession.user);
         toast({
           title: "登录成功",
           description: `欢迎回来！`,
@@ -79,8 +77,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async () => {
     try {
       await AuthService.logout();
-      setSession(null);
-      setUser(null);
       toast({
         title: "已登出",
         description: "您已成功退出系统",
@@ -102,9 +98,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (!success) throw new Error("更新失败");
       
-      // Update the local user state if update was successful
-      if (success && data.username) {
-        setUser(prevUser => prevUser ? {...prevUser, username: data.username} : null);
+      // 更新本地用户状态
+      if (success && data.username && user) {
+        setUser({...user, username: data.username});
       }
       
       toast({

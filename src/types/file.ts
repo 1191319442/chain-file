@@ -8,6 +8,8 @@ export interface FileAccess {
   accessType: 'view' | 'download' | 'share';
   timestamp: string;
   txHash?: string;
+  fileName?: string; // 文件名（用于显示）
+  userEmail?: string; // 用户邮箱（用于显示）
 }
 
 export interface FilePermissionSettings {
@@ -20,7 +22,8 @@ export interface FileMetadata {
   id: string;
   name: string;
   owner: string;
-  size: number;
+  ownerName?: string; // 所有者用户名（用于显示）
+  size: number | string;
   hash: string;
   permission: FilePermission;
   sharedWith: string[];
