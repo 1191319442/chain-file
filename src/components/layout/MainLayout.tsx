@@ -76,8 +76,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // 获取用户显示名
   const getUserDisplayName = () => {
     if (!user) return "";
-    // 使用user.user_metadata?.username替代直接访问username属性
-    return user.user_metadata?.username || user.email?.split('@')[0] || "用户";
+    return user.username || user.email?.split('@')[0] || "用户";
   };
 
   return (
