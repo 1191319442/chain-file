@@ -1,3 +1,4 @@
+
 /**
  * 认证上下文组件
  * 管理用户登录状态和认证相关功能
@@ -100,6 +101,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const success = await AuthService.updateProfile(data);
       
       if (!success) throw new Error("更新失败");
+      
+      // Update the local user state if update was successful
+      if (success && data.username) {
+        setUser(prevUser => prevUser ? {...prevUser, username: data.username} : null);
+      }
+      
+      toast({
+        title: "更新成功",
+        description: "您的个人资料已更新",
+      });
       
       return true;
     } catch (error: any) {
