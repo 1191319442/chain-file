@@ -1,4 +1,3 @@
-
 /**
  * 登录表单组件
  */
@@ -11,6 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CardContent, CardFooter } from "@/components/ui/card";
 import { Mail, Lock, Loader2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { LoginCredentials } from '@/types/auth';
 
 interface LoginFormProps {
   isLoading: boolean;
@@ -20,7 +20,7 @@ interface LoginFormProps {
 const LoginForm: React.FC<LoginFormProps> = ({ isLoading, setIsLoading }) => {
   const { login } = useAuth();
   const [loginError, setLoginError] = useState<string | null>(null);
-  const [loginForm, setLoginForm] = useState({
+  const [loginForm, setLoginForm] = useState<LoginCredentials>({
     email: '',
     password: ''
   });
@@ -37,7 +37,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ isLoading, setIsLoading }) => {
     e.preventDefault();
     setLoginError(null);
     
-    // 简单验证
     if (!loginForm.email || !loginForm.password) {
       setLoginError("请填写所有必填字段");
       return;
@@ -46,9 +45,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ isLoading, setIsLoading }) => {
     setIsLoading(true);
     
     try {
-      // 调用登录方法
-      const success = await login(loginForm.email, loginForm.password);
-      
+      const success = await login(loginForm);
       if (!success) {
         setLoginError("登录失败，请检查您的邮箱和密码");
       }
