@@ -46,7 +46,7 @@ export class AuthService {
             email: authData.user.email || '',
             username: profileData?.username || authData.user.email || '',
             role: isAdmin ? 'admin' : 'user',
-            publicKey: authData.user.user_metadata.publicKey
+            publicKey: authData.user.user_metadata?.publicKey || ''
           },
           expiresAt: new Date(authData.session.expires_at || 0).getTime()
         };

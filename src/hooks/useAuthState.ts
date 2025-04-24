@@ -31,8 +31,8 @@ export const useAuthState = () => {
               id: supabaseSession.user.id,
               username: profileData?.username || supabaseSession.user.email || '',
               email: supabaseSession.user.email || '',
-              role: isAdmin ? 'admin' : 'user',
-              publicKey: supabaseSession.user.user_metadata.publicKey
+              role: isAdmin ? 'admin' : 'user', // 根据username确定role
+              publicKey: supabaseSession.user.user_metadata?.publicKey || ''
             };
             
             const newSession: Session = {
@@ -80,8 +80,8 @@ export const useAuthState = () => {
               id: supabaseSession.user.id,
               username: profileData?.username || supabaseSession.user.email || '',
               email: supabaseSession.user.email || '',
-              role: isAdmin ? 'admin' : 'user',
-              publicKey: supabaseSession.user.user_metadata.publicKey
+              role: isAdmin ? 'admin' : 'user', // 根据username确定role
+              publicKey: supabaseSession.user.user_metadata?.publicKey || ''
             };
             
             const newSession: Session = {
