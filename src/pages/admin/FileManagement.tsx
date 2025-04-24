@@ -1,7 +1,7 @@
 
 import React from 'react';
 import MainLayout from '@/components/layout/MainLayout';
-import { FilePermissionDialog } from '@/components/file/FilePermissionDialog';
+import FilePermissionDialog from '@/components/file/FilePermissionDialog'; // Changed import
 import { FileMetadata } from '@/types/file';
 import { Button } from '@/components/ui/button';
 import { Upload } from 'lucide-react';
