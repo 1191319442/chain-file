@@ -1,6 +1,6 @@
-
 import apiClient from '../api/apiClient';
 import { fiscoBcosService } from './fiscoBcosService';
+import { FilePermission, FilePermissionSettings, FileMetadata, FileAccess } from '@/types/file';
 
 /**
  * 文件服务类
@@ -79,6 +79,56 @@ export class FileService {
     const response = await apiClient.post(`/files/${fileId}/share`, {
       targetUserId
     });
+    return response.data;
+  }
+
+  /**
+   * 设置文件访问权限
+   */
+  static async setFilePermission(settings: FilePermissionSettings) {
+    const response = await apiClient.post(`/files/${settings.fileId}/permissions`, settings);
+    return response.data;
+  }
+
+  /**
+   * 获取文件访问日志
+   */
+  static async getFileAccessLogs(fileId: string): Promise<FileAccess[]> {
+    const response = await apiClient.get(`/files/${fileId}/access-logs`);
+    return response.data;
+  }
+
+  /**
+   * 记录文件访问
+   */
+  static async logFileAccess(fileId: string, accessType: 'view' | 'download' | 'share') {
+    const response = await apiClient.post(`/files/${fileId}/access-logs`, { accessType });
+    return response.data;
+  }
+
+  /**
+   * 验证文件访问权限
+   */
+  static async checkFileAccess(fileId: string): Promise<boolean> {
+    try {
+      const response = await apiClient.get(`/files/${fileId}/check-access`);
+      return response.data.hasAccess;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * 下载文件
+   */
+  static async downloadFile(fileId: string) {
+    const response = await apiClient.get(`/files/${fileId}/download`, {
+      responseType: 'blob'
+    });
+    
+    // 记录下载操作
+    await this.logFileAccess(fileId, 'download');
+    
     return response.data;
   }
 }

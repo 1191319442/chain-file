@@ -1,4 +1,3 @@
-
 import CryptoJS from 'crypto-js';
 import apiClient from '../api/apiClient';
 
@@ -119,6 +118,31 @@ class FiscoBcosService {
     } catch (error: any) {
       console.error('获取区块信息失败:', error);
       throw new Error(`获取区块信息失败: ${error.message}`);
+    }
+  }
+  
+  /**
+   * 将文件访问日志记录到区块链
+   */
+  async recordAccessLog(logData: {
+    fileId: string;
+    userId: string;
+    accessType: string;
+    timestamp: string;
+  }): Promise<string> {
+    try {
+      if (!this.isConnected) {
+        await this.checkConnection();
+        if (!this.isConnected) {
+          throw new Error('未连接到区块链节点');
+        }
+      }
+      
+      const response = await apiClient.post('/blockchain/access-log', logData);
+      return response.data.txHash;
+    } catch (error: any) {
+      console.error('记录访问日志到区块链失败:', error);
+      throw new Error(`记录访问日志到区块链失败: ${error.message}`);
     }
   }
 }
