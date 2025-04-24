@@ -212,8 +212,8 @@ export class FileService {
     if (error) throw error;
     
     return (data || []).map(item => {
-      // 处理可能的关联查询错误
-      const ownerName = typeof item.profiles === 'object' && item.profiles !== null 
+      // 处理可能的关联查询错误，添加null检查
+      const ownerName = item.profiles && typeof item.profiles === 'object' 
         ? item.profiles.username 
         : undefined;
         
