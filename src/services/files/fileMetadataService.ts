@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { FileMetadata } from '@/types/file';
 
@@ -91,3 +90,25 @@ export class FileMetadataService {
   }
 }
 
+export async function getFilesList() {
+  const { data: files, error } = await supabase
+    .from('files')
+    .select(`
+      *,
+      profiles (
+        username,
+        is_admin
+      )
+    `)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching files:', error);
+    return [];
+  }
+
+  return files.map(item => ({
+    ...item,
+    username: item.profiles?.username || 'Unknown User'
+  }));
+}

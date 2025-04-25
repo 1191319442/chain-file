@@ -9,6 +9,7 @@ import { Mail, Lock, Loader2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { LoginCredentials } from '@/types/auth';
 import { Checkbox } from "@/components/ui/checkbox";
+import { supabase } from '@/integrations/supabase/client';
 
 interface LoginFormProps {
   isLoading: boolean;
@@ -31,6 +32,22 @@ const LoginForm: React.FC<LoginFormProps> = ({ isLoading, setIsLoading }) => {
     setLoginError(null);
   };
 
+  const verifyAdminAccess = async (email: string): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase
+        .from('admin_accounts')
+        .select('email')
+        .eq('email', email)
+        .single();
+
+      if (error) throw error;
+      return !!data;
+    } catch (error) {
+      console.error('Error verifying admin access:', error);
+      return false;
+    }
+  };
+
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError(null);
@@ -40,10 +57,24 @@ const LoginForm: React.FC<LoginFormProps> = ({ isLoading, setIsLoading }) => {
       setLoginError("请填写所有必填字段");
       return;
     }
+
+    if (isAdminLogin) {
+      const isAdmin = await verifyAdminAccess(loginForm.email);
+      if (!isAdmin) {
+        setLoginError("管理员登录失败：无效的管理员账户");
+        return;
+      }
+    }
     
     setIsLoading(true);
     
     try {
+      // For admin login, check if the credentials match root@example.com/123456
+      if (isAdminLogin && loginForm.email === 'root@example.com' && loginForm.password !== '123456') {
+        setLoginError("管理员登录失败：密码错误");
+        return;
+      }
+
       const success = await login({
         ...loginForm,
         isAdmin: isAdminLogin
