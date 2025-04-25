@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CardContent, CardFooter } from "@/components/ui/card";
-import { Mail, Lock, Loader2, User } from "lucide-react";
+import { Mail, Lock, Loader2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { LoginCredentials } from '@/types/auth';
 import { Checkbox } from "@/components/ui/checkbox";
@@ -19,6 +19,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ isLoading, setIsLoading }) => {
   const { login } = useAuth();
   const [loginError, setLoginError] = useState<string | null>(null);
   const [isAdminLogin, setIsAdminLogin] = useState(false);
+  const [hasAttemptedLogin, setHasAttemptedLogin] = useState(false);
   const [loginForm, setLoginForm] = useState<LoginCredentials>({
     email: '',
     password: ''
@@ -33,6 +34,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ isLoading, setIsLoading }) => {
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError(null);
+    setHasAttemptedLogin(true);
     
     if (!loginForm.email || !loginForm.password) {
       setLoginError("请填写所有必填字段");
@@ -102,9 +104,19 @@ const LoginForm: React.FC<LoginFormProps> = ({ isLoading, setIsLoading }) => {
           <Checkbox 
             id="admin-login"
             checked={isAdminLogin}
-            onCheckedChange={(checked) => setIsAdminLogin(checked as boolean)}
+            onCheckedChange={(checked) => {
+              if (!hasAttemptedLogin) {
+                setIsAdminLogin(checked as boolean);
+              }
+            }}
+            disabled={hasAttemptedLogin || isLoading}
           />
-          <Label htmlFor="admin-login">管理员登录</Label>
+          <Label 
+            htmlFor="admin-login" 
+            className={hasAttemptedLogin ? "text-muted-foreground" : ""}
+          >
+            管理员登录
+          </Label>
         </div>
       </CardContent>
       

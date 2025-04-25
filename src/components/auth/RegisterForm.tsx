@@ -1,8 +1,4 @@
 
-/**
- * 注册表单组件
- */
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +8,7 @@ import { CardContent, CardFooter } from "@/components/ui/card";
 import { User, Mail, Lock, Loader2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { RegisterData } from '@/types/auth';
+import { supabase } from '@/integrations/supabase/client';
 
 interface RegisterFormProps {
   isLoading: boolean;
@@ -21,6 +18,7 @@ interface RegisterFormProps {
 const RegisterForm: React.FC<RegisterFormProps> = ({ isLoading, setIsLoading }) => {
   const { register } = useAuth();
   const [registerError, setRegisterError] = useState<string | null>(null);
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
   const [registerForm, setRegisterForm] = useState<RegisterData & { confirmPassword: string }>({
     username: '',
     email: '',
@@ -28,19 +26,44 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ isLoading, setIsLoading }) 
     confirmPassword: ''
   });
 
-  // 处理注册表单变化
-  const handleRegisterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setRegisterForm(prev => ({ ...prev, [name]: value }));
-    setRegisterError(null); // 清除错误消息
+  const checkEmailExists = async (email: string) => {
+    try {
+      setIsCheckingEmail(true);
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', email)
+        .maybeSingle();
+
+      if (error) throw error;
+      return !!data;
+    } catch (error) {
+      console.error('检查邮箱时出错:', error);
+      return false;
+    } finally {
+      setIsCheckingEmail(false);
+    }
   };
 
-  // 处理注册提交
+  const handleRegisterChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setRegisterForm(prev => ({ ...prev, [name]: value }));
+    setRegisterError(null);
+
+    // 当邮箱输入变化时，检查是否已存在
+    if (name === 'email' && value) {
+      const emailExists = await checkEmailExists(value);
+      if (emailExists) {
+        setRegisterError("该邮箱已被注册");
+      }
+    }
+  };
+
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setRegisterError(null);
     
-    // 简单验证
+    // 基础验证
     if (!registerForm.username || !registerForm.email || !registerForm.password || !registerForm.confirmPassword) {
       setRegisterError("请填写所有必填字段");
       return;
@@ -55,11 +78,17 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ isLoading, setIsLoading }) 
       setRegisterError("密码长度必须至少为6个字符");
       return;
     }
+
+    // 再次检查邮箱是否已存在
+    const emailExists = await checkEmailExists(registerForm.email);
+    if (emailExists) {
+      setRegisterError("该邮箱已被注册");
+      return;
+    }
     
     setIsLoading(true);
     
     try {
-      // 调用注册方法，传递RegisterData对象
       const registerData: RegisterData = {
         username: registerForm.username,
         email: registerForm.email,
@@ -69,7 +98,6 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ isLoading, setIsLoading }) 
       const success = await register(registerData);
       
       if (success) {
-        // 清空表单
         setRegisterForm({
           username: '',
           email: '',
@@ -119,7 +147,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ isLoading, setIsLoading }) 
               className="pl-10"
               value={registerForm.email}
               onChange={handleRegisterChange}
-              disabled={isLoading}
+              disabled={isLoading || isCheckingEmail}
             />
           </div>
         </div>
@@ -157,7 +185,11 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ isLoading, setIsLoading }) 
         </div>
       </CardContent>
       <CardFooter>
-        <Button type="submit" className="w-full" disabled={isLoading}>
+        <Button 
+          type="submit" 
+          className="w-full" 
+          disabled={isLoading || isCheckingEmail || !!registerError}
+        >
           {isLoading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
