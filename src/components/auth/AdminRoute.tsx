@@ -34,9 +34,8 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
         if (error) throw error;
         
         // 检查用户是否为管理员
-        // 由于数据库中没有role字段，我们暂时使用username字段判断
-        // 这里只是临时方案，实际应该在数据库中添加role字段
-        const isUserAdmin = data && data.username === 'admin';
+        // 由于数据库中没有role字段，我们暂时使用is_admin字段判断
+        const isUserAdmin = data?.is_admin === true;
         setHasAdminRole(isUserAdmin);
         
         if (!isUserAdmin) {

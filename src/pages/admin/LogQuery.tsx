@@ -7,7 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { FileService } from '@/services/fileService';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, RefreshCcw } from 'lucide-react';
+import { Search, RefreshCcw, FileText, CalendarDays } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -116,8 +116,14 @@ const LogQuery: React.FC = () => {
 
             <Tabs defaultValue="list">
               <TabsList className="mb-4">
-                <TabsTrigger value="list">列表视图</TabsTrigger>
-                <TabsTrigger value="timeline">时间线视图</TabsTrigger>
+                <TabsTrigger value="list">
+                  <FileText className="h-4 w-4 mr-2" />
+                  列表视图
+                </TabsTrigger>
+                <TabsTrigger value="timeline">
+                  <CalendarDays className="h-4 w-4 mr-2" />
+                  时间线视图
+                </TabsTrigger>
               </TabsList>
               
               <TabsContent value="list" className="space-y-4">

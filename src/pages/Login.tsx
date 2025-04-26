@@ -16,7 +16,7 @@ import Logo from '@/components/common/Logo';
 const Login: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isAdmin } = useAuth();
   
   // 加载状态
   const [isLoading, setIsLoading] = useState(false);
@@ -24,12 +24,14 @@ const Login: React.FC = () => {
   // 获取重定向前的路径
   const from = location.state?.from?.pathname || "/dashboard";
   
-  // 如果已经登录，重定向到主页
+  // 如果已经登录，重定向到相应页面
   useEffect(() => {
     if (isAuthenticated) {
-      navigate(from, { replace: true });
+      // 如果是管理员，可以考虑重定向到管理员页面
+      const redirectTo = isAdmin ? "/admin/files" : from;
+      navigate(redirectTo, { replace: true });
     }
-  }, [isAuthenticated, navigate, from]);
+  }, [isAuthenticated, isAdmin, navigate, from]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12">

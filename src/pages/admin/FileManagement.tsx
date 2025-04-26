@@ -5,7 +5,7 @@ import FilePermissionDialog from '@/components/file/FilePermissionDialog';
 import { FileMetadata } from '@/types/file';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Download, Share, Trash2, Upload, Eye, Shield } from 'lucide-react';
+import { Download, Share, Trash2, Upload, Eye, Shield, FileLock, Database } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import FileService from '@/services/fileService';
 import {

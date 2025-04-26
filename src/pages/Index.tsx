@@ -10,20 +10,24 @@ import FileCard, { FileItem } from '@/components/dashboard/FileCard';
 import ShareDialog from '@/components/sharing/ShareDialog';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Upload } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { Search, Upload, Shield } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import FilePermissionDialog from '@/components/file/FilePermissionDialog';
+import { FilePermission } from '@/types/file';
+import FileService from '@/services/fileService';
 
 const Index: React.FC = () => {
   const [files, setFiles] = useState<FileItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [permissionDialogOpen, setPermissionDialogOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<FileItem | undefined>(undefined);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
 
   // 获取用户文件
   const fetchUserFiles = async () => {
@@ -45,7 +49,8 @@ const Index: React.FC = () => {
         size: file.size,
         uploadDate: new Date(file.created_at || '').toISOString().split('T')[0],
         hash: file.hash,
-        owner: user.email || '未知用户'
+        owner: user.email || '未知用户',
+        permission: 'private' // 默认权限，实际应从数据库获取
       }));
 
       setFiles(formattedFiles);
@@ -71,8 +76,35 @@ const Index: React.FC = () => {
   const handleDownload = async (file: FileItem) => {
     toast({
       title: "文件下载已开始",
-      description: `正在从区块链下载: ${file.name}`,
+      description: `正在下载: ${file.name}`,
     });
+    
+    try {
+      const fileBlob = await FileService.downloadFile(file.id);
+      
+      // 创建下载链接
+      const url = URL.createObjectURL(fileBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = file.name;
+      document.body.appendChild(a);
+      a.click();
+      
+      // 清理
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 0);
+      
+      // 记录下载操作
+      await FileService.logFileAccess(file.id, 'download');
+    } catch (error: any) {
+      toast({
+        title: "下载失败",
+        description: error.message || "无法下载文件",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleShare = (file: FileItem) => {
@@ -80,11 +112,14 @@ const Index: React.FC = () => {
     setShareDialogOpen(true);
   };
 
-  const handleView = (file: FileItem) => {
+  const handleView = async (file: FileItem) => {
     toast({
       title: "查看文件详情",
       description: `文件: ${file.name}`,
     });
+    
+    // 记录查看操作
+    await FileService.logFileAccess(file.id, 'view');
   };
 
   const handleDelete = async (file: FileItem) => {
@@ -101,7 +136,7 @@ const Index: React.FC = () => {
 
       toast({
         title: "文件已删除",
-        description: `已从区块链中删除: ${file.name}`,
+        description: `已删除: ${file.name}`,
       });
     } catch (error: any) {
       toast({
@@ -111,16 +146,29 @@ const Index: React.FC = () => {
       });
     }
   };
+  
+  const handlePermission = (file: FileItem) => {
+    setSelectedFile(file);
+    setPermissionDialogOpen(true);
+  };
 
   return (
     <MainLayout>
       <div className="flex flex-col">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">我的文件</h1>
-          <Button onClick={() => navigate('/upload')}>
-            <Upload className="mr-2 h-4 w-4" />
-            上传新文件
-          </Button>
+          <div className="flex space-x-2">
+            {isAdmin && (
+              <Button variant="outline" onClick={() => navigate('/admin/files')}>
+                <Shield className="mr-2 h-4 w-4" />
+                文件管理
+              </Button>
+            )}
+            <Button onClick={() => navigate('/upload')}>
+              <Upload className="mr-2 h-4 w-4" />
+              上传新文件
+            </Button>
+          </div>
         </div>
 
         <div className="flex mb-6">
@@ -152,6 +200,7 @@ const Index: React.FC = () => {
                 onShare={handleShare}
                 onView={handleView}
                 onDelete={handleDelete}
+                onPermission={handlePermission}
               />
             ))}
           </div>
@@ -162,6 +211,49 @@ const Index: React.FC = () => {
         isOpen={shareDialogOpen}
         onClose={() => setShareDialogOpen(false)}
         file={selectedFile}
+      />
+      
+      <FilePermissionDialog
+        open={permissionDialogOpen}
+        onClose={() => setPermissionDialogOpen(false)}
+        file={selectedFile ? {
+          id: selectedFile.id,
+          name: selectedFile.name,
+          owner: selectedFile.owner,
+          size: selectedFile.size,
+          hash: selectedFile.hash || '',
+          permission: selectedFile.permission || 'private',
+          sharedWith: [],
+          uploadDate: selectedFile.uploadDate,
+          contentType: selectedFile.type
+        } : null}
+        onSave={async (fileId, permission, sharedUserIds) => {
+          try {
+            await FileService.setFilePermission({
+              fileId,
+              permission,
+              sharedUserIds
+            });
+            
+            // 更新本地文件权限
+            setFiles(prevFiles => 
+              prevFiles.map(f => 
+                f.id === fileId ? { ...f, permission } : f
+              )
+            );
+            
+            toast({
+              title: "权限已更新",
+              description: "文件访问权限设置已更新"
+            });
+          } catch (error: any) {
+            toast({
+              title: "更新失败",
+              description: error.message || "无法更新文件权限",
+              variant: "destructive"
+            });
+          }
+        }}
       />
     </MainLayout>
   );

@@ -13,21 +13,18 @@ export type Database = {
         Row: {
           created_at: string | null
           email: string
-          id: string
           updated_at: string | null
           username: string
         }
         Insert: {
           created_at?: string | null
           email: string
-          id?: string
           updated_at?: string | null
           username: string
         }
         Update: {
           created_at?: string | null
           email?: string
-          id?: string
           updated_at?: string | null
           username?: string
         }
@@ -38,7 +35,6 @@ export type Database = {
           block_number: number | null
           created_at: string | null
           file_id: string
-          id: string
           status: string
           tx_hash: string
           updated_at: string | null
@@ -47,7 +43,6 @@ export type Database = {
           block_number?: number | null
           created_at?: string | null
           file_id: string
-          id?: string
           status: string
           tx_hash: string
           updated_at?: string | null
@@ -56,20 +51,11 @@ export type Database = {
           block_number?: number | null
           created_at?: string | null
           file_id?: string
-          id?: string
           status?: string
           tx_hash?: string
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "blockchain_transactions_file_id_fkey"
-            columns: ["file_id"]
-            isOneToOne: false
-            referencedRelation: "files"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       files: {
         Row: {
@@ -77,7 +63,6 @@ export type Database = {
           content_type: string | null
           created_at: string | null
           hash: string
-          id: string
           name: string
           size: string
           tx_hash: string | null
@@ -89,7 +74,6 @@ export type Database = {
           content_type?: string | null
           created_at?: string | null
           hash: string
-          id?: string
           name: string
           size: string
           tx_hash?: string | null
@@ -101,7 +85,6 @@ export type Database = {
           content_type?: string | null
           created_at?: string | null
           hash?: string
-          id?: string
           name?: string
           size?: string
           tx_hash?: string | null
@@ -113,23 +96,23 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
-          id: string
           is_admin: boolean | null
           updated_at: string | null
+          user_id: string
           username: string | null
         }
         Insert: {
           avatar_url?: string | null
-          id: string
           is_admin?: boolean | null
           updated_at?: string | null
+          user_id: string
           username?: string | null
         }
         Update: {
           avatar_url?: string | null
-          id?: string
           is_admin?: boolean | null
           updated_at?: string | null
+          user_id?: string
           username?: string | null
         }
         Relationships: []

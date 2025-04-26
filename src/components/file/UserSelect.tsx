@@ -6,7 +6,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { User } from '@/api/authService';
+import { User } from '@/types/auth';
+import { supabase } from '@/integrations/supabase/client'; 
 
 interface UserSelectProps {
   selectedUsers: string[];
@@ -21,15 +22,26 @@ const UserSelect: React.FC<UserSelectProps> = ({
   const [users, setUsers] = useState<User[]>([]);
 
   useEffect(() => {
-    // 从API获取用户列表
+    // 从数据库获取用户列表
     const fetchUsers = async () => {
       try {
-        // 这里需要实现获取用户列表的API
-        const response = await fetch('/api/users');
-        const data = await response.json();
-        setUsers(data);
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, username, email');
+          
+        if (error) throw error;
+        
+        const usersList = data.map(profile => ({
+          id: profile.id,
+          username: profile.username || '',
+          email: profile.email || '',
+          role: 'user'
+        }));
+        
+        setUsers(usersList);
       } catch (error) {
         console.error('Failed to fetch users:', error);
+        setUsers([]); 
       }
     };
 

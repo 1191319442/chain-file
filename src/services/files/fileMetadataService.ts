@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { FileMetadata } from '@/types/file';
 
@@ -68,11 +69,9 @@ export class FileMetadataService {
     if (error) throw error;
     
     return (data || []).map(item => {
-      const ownerName = item.profiles && 
-        typeof item.profiles === 'object' && 
-        'username' in item.profiles 
-          ? (item.profiles as { username?: string }).username
-          : undefined;
+      // 修复潜在的空值问题
+      const profile = item.profiles as { username?: string } | null;
+      const ownerName = profile?.username;
         
       return {
         id: item.id,
