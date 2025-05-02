@@ -1,16 +1,16 @@
 
-import { supabase } from '@/integrations/supabase/client';
 import { FileAccess } from '@/types/file';
 
 /**
  * Service handling file access and permissions
+ * Frontend-only implementation
  */
 export class FileAccessService {
   /**
    * 获取文件访问日志
    */
   static async getFileAccessLogs(fileId: string): Promise<FileAccess[]> {
-    // 模拟访问日志数据，实际项目中应该从数据库获取
+    // Frontend-only mock data
     const currentTime = new Date().toISOString();
     const mockLogs: FileAccess[] = [
       {
@@ -38,7 +38,7 @@ export class FileAccessService {
    * 记录文件访问
    */
   static async logFileAccess(fileId: string, accessType: 'view' | 'download' | 'share'): Promise<boolean> {
-    // 实际项目中应该将访问记录保存到数据库
+    // Frontend-only mock implementation
     console.log(`记录文件访问: ${fileId}, 类型: ${accessType}, 时间: ${new Date().toISOString()}`);
     return true;
   }
@@ -47,26 +47,15 @@ export class FileAccessService {
    * 验证文件访问权限
    */
   static async checkFileAccess(fileId: string): Promise<boolean> {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) return false;
-    
-    const { data, error } = await supabase
-      .from('files')
-      .select('*')
-      .eq('id', fileId)
-      .single();
-      
-    if (error) return false;
-    
-    const userId = session.user.id;
-    return data.user_id === userId;
+    // Frontend-only mock implementation
+    return true;
   }
 
   /**
    * 获取所有访问日志（仅管理员）
    */
   static async getAllAccessLogs(): Promise<FileAccess[]> {
-    // 模拟多个文件的访问日志数据
+    // Frontend-only mock data
     const currentTime = new Date().toISOString();
     const mockLogs: FileAccess[] = [
       {

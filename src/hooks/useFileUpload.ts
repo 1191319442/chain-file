@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from '@/context/AuthContext';
 
 /**
- * 文件上传逻辑的自定义Hook
+ * Frontend-only file upload hook
  */
 export function useFileUpload() {
   const [files, setFiles] = useState<File[]>([]);
@@ -15,7 +15,7 @@ export function useFileUpload() {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // 添加文件
+  // Add files
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const newFiles = Array.from(e.target.files);
@@ -23,14 +23,14 @@ export function useFileUpload() {
     }
   };
 
-  // 移除文件
+  // Remove file
   const removeFile = (index: number) => {
     const newFiles = [...files];
     newFiles.splice(index, 1);
     setFiles(newFiles);
   };
 
-  // 上传文件
+  // Upload files - frontend mock
   const handleUpload = async () => {
     if (files.length === 0) {
       toast({
@@ -43,7 +43,7 @@ export function useFileUpload() {
     if (!bcosConnected) {
       toast({
         title: "区块链连接失败",
-        description: "无法连接到FISCO BCOS节点，请检查网络连接",
+        description: "无法连接到区块链节点，请检查网络连接",
         variant: "destructive",
       });
       return;
@@ -57,14 +57,16 @@ export function useFileUpload() {
         const file = files[i];
         setProgress(Math.round((i / files.length) * 30));
         
-        if (!user?.id) {
-          throw new Error('用户未登录');
-        }
+        const userId = user?.id || 'demo-user';
+        const email = user?.email || 'demo@example.com';
         
-        // 上传文件到区块链
-        await uploadFileToBlockchain(file, user.id, user.email || '');
+        // Mock upload
+        await uploadFileToBlockchain(file, userId, email);
         
         setProgress(60 + Math.round((i / files.length) * 40));
+        
+        // Simulate processing delay
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
       
       setProgress(100);

@@ -1,12 +1,12 @@
 
 /**
  * 首页组件
- * 显示用户的文件列表，通过 Supabase 获取真实文件数据
+ * 显示用户的文件列表
  */
 
 import React, { useState, useEffect } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
-import FileCard, { FileItem } from '@/components/dashboard/FileCard';
+import FileCard from '@/components/dashboard/FileCard';
 import ShareDialog from '@/components/sharing/ShareDialog';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,10 +14,20 @@ import { Search, Upload, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
 import FilePermissionDialog from '@/components/file/FilePermissionDialog';
-import { FilePermission } from '@/types/file';
 import FileService from '@/services/fileService';
+
+// Define the FileItem type to match FileCard props
+interface FileItem {
+  id: string;
+  name: string;
+  type: string;
+  size: string;
+  uploadDate: string;
+  hash?: string;
+  owner: string;
+  permission?: string;
+}
 
 const Index: React.FC = () => {
   const [files, setFiles] = useState<FileItem[]>([]);
@@ -29,50 +39,42 @@ const Index: React.FC = () => {
   const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
 
-  // 获取用户文件
-  const fetchUserFiles = async () => {
-    if (!user) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('files')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      const formattedFiles: FileItem[] = data.map(file => ({
-        id: file.id,
-        name: file.name,
-        type: file.content_type || 'application/octet-stream',
-        size: file.size,
-        uploadDate: new Date(file.created_at || '').toISOString().split('T')[0],
-        hash: file.hash,
-        owner: user.email || '未知用户',
-        permission: 'private' // 默认权限，实际应从数据库获取
-      }));
-
-      setFiles(formattedFiles);
-    } catch (error: any) {
-      toast({
-        title: "获取文件失败",
-        description: error.message || "无法加载文件列表",
-        variant: "destructive"
-      });
+  // Mock data for frontend development
+  const mockFiles: FileItem[] = [
+    {
+      id: 'file-1',
+      name: '财务报表.xlsx',
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      size: '1024',
+      uploadDate: new Date().toISOString().split('T')[0],
+      hash: '0x1234567890abcdef',
+      owner: 'Demo User',
+      permission: 'private'
+    },
+    {
+      id: 'file-2',
+      name: '技术文档.pdf',
+      type: 'application/pdf',
+      size: '2048',
+      uploadDate: new Date(Date.now() - 86400000).toISOString().split('T')[0],
+      hash: '0x0987654321fedcba',
+      owner: 'Demo User',
+      permission: 'shared'
     }
-  };
+  ];
 
+  // Get user files
   useEffect(() => {
-    fetchUserFiles();
-  }, [user]);
+    // Use mock data instead of fetching from Supabase
+    setFiles(mockFiles);
+  }, []);
 
-  // 根据搜索关键词筛选文件
+  // Filter files based on search query
   const filteredFiles = files.filter(
     (file) => file.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // 文件操作处理函数
+  // File operation handlers
   const handleDownload = async (file: FileItem) => {
     toast({
       title: "文件下载已开始",
@@ -82,7 +84,7 @@ const Index: React.FC = () => {
     try {
       const fileBlob = await FileService.downloadFile(file.id);
       
-      // 创建下载链接
+      // Create download link
       const url = URL.createObjectURL(fileBlob);
       const a = document.createElement('a');
       a.href = url;
@@ -90,14 +92,11 @@ const Index: React.FC = () => {
       document.body.appendChild(a);
       a.click();
       
-      // 清理
+      // Cleanup
       setTimeout(() => {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
       }, 0);
-      
-      // 记录下载操作
-      await FileService.logFileAccess(file.id, 'download');
     } catch (error: any) {
       toast({
         title: "下载失败",
@@ -117,21 +116,13 @@ const Index: React.FC = () => {
       title: "查看文件详情",
       description: `文件: ${file.name}`,
     });
-    
-    // 记录查看操作
-    await FileService.logFileAccess(file.id, 'view');
   };
 
   const handleDelete = async (file: FileItem) => {
     try {
-      const { error } = await supabase
-        .from('files')
-        .delete()
-        .eq('id', file.id);
+      await FileService.deleteFile(file.id);
 
-      if (error) throw error;
-
-      // 更新本地文件列表
+      // Update local files list
       setFiles(prevFiles => prevFiles.filter(f => f.id !== file.id));
 
       toast({
@@ -196,11 +187,10 @@ const Index: React.FC = () => {
               <FileCard
                 key={file.id}
                 file={file}
-                onDownload={handleDownload}
-                onShare={handleShare}
-                onView={handleView}
-                onDelete={handleDelete}
-                onPermission={handlePermission}
+                onDownload={() => handleDownload(file)}
+                onShare={() => handleShare(file)}
+                onView={() => handleView(file)}
+                onDelete={() => handleDelete(file)}
               />
             ))}
           </div>
@@ -229,13 +219,14 @@ const Index: React.FC = () => {
         } : null}
         onSave={async (fileId, permission, sharedUserIds) => {
           try {
+            // Use the simplified FileOperationsService
             await FileService.setFilePermission({
               fileId,
               permission,
               sharedUserIds
             });
             
-            // 更新本地文件权限
+            // Update local files permissions
             setFiles(prevFiles => 
               prevFiles.map(f => 
                 f.id === fileId ? { ...f, permission } : f

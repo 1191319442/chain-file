@@ -1,9 +1,46 @@
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { fiscoBcosService } from '@/services/fiscoBcosService';
 import { useToast } from '@/components/ui/use-toast';
 import { Transaction } from '@/components/blockchain/TransactionCard';
+
+// Mock data for frontend development
+const MOCK_TRANSACTIONS = [
+  {
+    id: 'tx-1',
+    type: 'upload',
+    timestamp: new Date().toLocaleString(),
+    fileName: '财务报表.xlsx',
+    fileHash: '0x1234567890abcdef',
+    user: 'user-1',
+    status: 'confirmed',
+    blockNumber: 12345
+  },
+  {
+    id: 'tx-2',
+    type: 'verification',
+    timestamp: new Date(Date.now() - 86400000).toLocaleString(),
+    fileName: '技术文档.pdf',
+    fileHash: '0x0987654321fedcba',
+    user: 'user-2',
+    status: 'confirmed',
+    blockNumber: 12344
+  }
+];
+
+const MOCK_BLOCKS = [
+  {
+    number: 12345,
+    hash: '0xblock12345',
+    timestamp: Date.now(),
+    transactions: ['0x1234567890abcdef']
+  },
+  {
+    number: 12344,
+    hash: '0xblock12344',
+    timestamp: Date.now() - 86400000,
+    transactions: ['0x0987654321fedcba']
+  }
+];
 
 export const useBlockchainData = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -15,43 +52,9 @@ export const useBlockchainData = () => {
     try {
       setLoading(true);
       
-      // 获取区块链交易数据
-      const { data: txData, error: txError } = await supabase
-        .from('blockchain_transactions')
-        .select(`
-          *,
-          files (
-            name,
-            hash,
-            user_id,
-            content_type
-          )
-        `)
-        .order('created_at', { ascending: false });
-
-      if (txError) throw txError;
-
-      // 获取文件对应的区块信息
-      const blockData = await Promise.all(
-        (txData || [])
-          .filter(tx => tx.block_number)
-          .map(tx => fiscoBcosService.getBlockInfo(tx.block_number))
-      );
-
-      // 格式化交易数据
-      const formattedTx: Transaction[] = (txData || []).map(tx => ({
-        id: tx.id,
-        type: tx.status === 'confirmed' ? 'upload' : 'verification',
-        timestamp: new Date(tx.created_at || '').toLocaleString(),
-        fileName: tx.files?.name || '未知文件',
-        fileHash: tx.files?.hash || tx.tx_hash,
-        user: tx.files?.user_id || '未知用户',
-        status: tx.status === 'confirmed' ? 'confirmed' : 'pending',
-        blockNumber: tx.block_number
-      }));
-
-      setTransactions(formattedTx);
-      setBlocks(blockData);
+      // Use mock data instead of fetching from Supabase
+      setTransactions(MOCK_TRANSACTIONS);
+      setBlocks(MOCK_BLOCKS);
 
     } catch (error: any) {
       toast({
@@ -64,28 +67,16 @@ export const useBlockchainData = () => {
     }
   };
 
-  // 实时订阅区块链交易更新
+  // Simulate real-time updates with setTimeout
   useEffect(() => {
-    const channel = supabase
-      .channel('blockchain-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'blockchain_transactions'
-        },
-        () => {
-          fetchBlockchainData();
-        }
-      )
-      .subscribe();
-
     fetchBlockchainData();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    
+    // Simulate periodic updates
+    const interval = setInterval(() => {
+      fetchBlockchainData();
+    }, 30000); // Update every 30 seconds
+    
+    return () => clearInterval(interval);
   }, []);
 
   return {

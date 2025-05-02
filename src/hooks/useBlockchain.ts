@@ -1,9 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { fiscoBcosService, calculateFileHash } from '@/services/fiscoBcosService';
 import { useToast } from "@/hooks/use-toast";
-import { FileService } from '@/services/fileService';
-import { AuthService } from '@/api/authService';
 
 export type FileInfo = {
   name: string;
@@ -14,64 +11,51 @@ export type FileInfo = {
 };
 
 /**
- * 区块链连接和文件操作的自定义Hook
+ * Frontend-only mock blockchain hook
  */
 export function useBlockchain() {
-  const [bcosConnected, setBcosConnected] = useState(false);
-  const [checkingConnection, setCheckingConnection] = useState(true);
+  const [bcosConnected, setBcosConnected] = useState(true);
+  const [checkingConnection, setCheckingConnection] = useState(false);
   const { toast } = useToast();
 
-  // 检查与区块链的连接状态
+  // Check connection status - frontend mock
   const checkConnection = async () => {
     setCheckingConnection(true);
-    const connected = await fiscoBcosService.checkConnection();
-    setBcosConnected(connected);
+    // Simulate connection delay
+    await new Promise(resolve => setTimeout(resolve, 500));
+    setBcosConnected(true);
     setCheckingConnection(false);
-    return connected;
+    return true;
   };
 
-  // 重试连接
+  // Retry connection - frontend mock
   const retryConnection = async () => {
-    const connected = await checkConnection();
+    setCheckingConnection(true);
+    // Simulate connection delay
+    await new Promise(resolve => setTimeout(resolve, 800));
+    setBcosConnected(true);
+    setCheckingConnection(false);
     
-    if (connected) {
-      toast({
-        title: "连接成功",
-        description: "已成功连接到FISCO BCOS区块链节点",
-      });
-    } else {
-      toast({
-        title: "连接失败",
-        description: "无法连接到FISCO BCOS节点，请检查网络连接",
-        variant: "destructive",
-      });
-    }
+    toast({
+      title: "连接成功",
+      description: "已成功连接到区块链节点",
+    });
+    
+    return true;
   };
 
-  // 上传文件到区块链
+  // Upload file - frontend mock
   const uploadFileToBlockchain = async (file: File, userId: string, email: string): Promise<string> => {
-    // 计算文件哈希
-    const fileHash = await calculateFileHash(file);
+    // Calculate mock hash
+    const fileHash = `0x${Array.from(new Array(40), () => Math.floor(Math.random() * 16).toString(16)).join('')}`;
     
-    // 构建文件信息
-    const fileInfo: FileInfo = {
-      name: file.name,
-      hash: fileHash,
-      size: `${(file.size / 1024).toFixed(2)} KB`,
-      owner: email || '未知用户',
-      uploadDate: new Date().toISOString().split('T')[0],
-    };
+    // Simulate upload delay
+    await new Promise(resolve => setTimeout(resolve, 1500));
     
-    // 上传到区块链
-    const txHash = await fiscoBcosService.uploadFile(fileInfo);
-    
-    // 上传文件到后端
-    await FileService.uploadFile(file, userId, email);
-    
-    return txHash;
+    return `tx-${Date.now()}`;
   };
 
-  // 初始化 - 检查连接
+  // Init - check connection
   useEffect(() => {
     checkConnection();
   }, []);

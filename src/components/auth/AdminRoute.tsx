@@ -1,66 +1,18 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 
 interface AdminRouteProps {
   children: React.ReactNode;
 }
 
 const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
-  const { isAuthenticated, isAdmin, user } = useAuth();
+  const { isAuthenticated, isAdmin } = useAuth();
   const location = useLocation();
   const { toast } = useToast();
-  const [isVerifying, setIsVerifying] = useState(true);
-  const [hasAdminRole, setHasAdminRole] = useState(false);
-
-  useEffect(() => {
-    const verifyAdminRole = async () => {
-      if (!isAuthenticated || !user) {
-        setIsVerifying(false);
-        return;
-      }
-
-      try {
-        // 检查用户是否为管理员
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-
-        if (error) throw error;
-        
-        // 检查用户是否为管理员
-        // 由于数据库中没有role字段，我们暂时使用is_admin字段判断
-        const isUserAdmin = data?.is_admin === true;
-        setHasAdminRole(isUserAdmin);
-        
-        if (!isUserAdmin) {
-          toast({
-            title: "访问被拒绝",
-            description: "您没有管理员权限访问此页面",
-            variant: "destructive",
-          });
-        }
-      } catch (error) {
-        console.error('验证管理员权限失败:', error);
-        setHasAdminRole(false);
-        
-        toast({
-          title: "权限验证失败",
-          description: "无法验证您的管理员权限",
-          variant: "destructive",
-        });
-      } finally {
-        setIsVerifying(false);
-      }
-    };
-
-    verifyAdminRole();
-  }, [isAuthenticated, user, toast]);
+  const [isVerifying] = useState(false);
 
   if (isVerifying) {
     return (
@@ -74,7 +26,12 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (!hasAdminRole) {
+  if (!isAdmin) {
+    toast({
+      title: "访问被拒绝",
+      description: "您没有管理员权限访问此页面",
+      variant: "destructive",
+    });
     return <Navigate to="/dashboard" state={{ from: location }} replace />;
   }
 

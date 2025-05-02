@@ -1,13 +1,18 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Check, ChevronsUpDown } from "lucide-react";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { User } from '@/types/auth';
-import { supabase } from '@/integrations/supabase/client'; 
+
+// Simplified User type
+type SimpleUser = {
+  id: string;
+  username: string;
+  email: string;
+};
 
 interface UserSelectProps {
   selectedUsers: string[];
@@ -19,34 +24,13 @@ const UserSelect: React.FC<UserSelectProps> = ({
   onSelectionChange
 }) => {
   const [open, setOpen] = useState(false);
-  const [users, setUsers] = useState<User[]>([]);
-
-  useEffect(() => {
-    // 从数据库获取用户列表
-    const fetchUsers = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('id, username, email');
-          
-        if (error) throw error;
-        
-        const usersList = data.map(profile => ({
-          id: profile.id,
-          username: profile.username || '',
-          email: profile.email || '',
-          role: 'user'
-        }));
-        
-        setUsers(usersList);
-      } catch (error) {
-        console.error('Failed to fetch users:', error);
-        setUsers([]); 
-      }
-    };
-
-    fetchUsers();
-  }, []);
+  
+  // Frontend-only mock users data
+  const users: SimpleUser[] = [
+    { id: "user-1", username: "User One", email: "user1@example.com" },
+    { id: "user-2", username: "User Two", email: "user2@example.com" },
+    { id: "user-3", username: "User Three", email: "user3@example.com" },
+  ];
 
   return (
     <div className="space-y-2">

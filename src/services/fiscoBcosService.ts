@@ -1,26 +1,16 @@
-import CryptoJS from 'crypto-js';
-import apiClient from '../api/apiClient';
 
-// 计算文件的SHA-256哈希值
-export const calculateFileHash = (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        if (!event.target || !event.target.result) {
-          throw new Error('读取文件失败');
-        }
-        
-        // 计算SHA-256哈希值
-        const wordArray = CryptoJS.lib.WordArray.create(event.target.result as ArrayBuffer);
-        const hash = CryptoJS.SHA256(wordArray).toString();
-        resolve(`0x${hash}`);
-      } catch (error) {
-        reject(error);
-      }
-    };
-    reader.onerror = (error) => reject(error);
-    reader.readAsArrayBuffer(file);
+/**
+ * Frontend-only mock blockchain service
+ */
+
+// Mock file hash calculation 
+export const calculateFileHash = async (file: File): Promise<string> => {
+  return new Promise((resolve) => {
+    // Simulate hash calculation with random hash
+    setTimeout(() => {
+      const hash = `0x${Array.from(new Array(40), () => Math.floor(Math.random() * 16).toString(16)).join('')}`;
+      resolve(hash);
+    }, 200);
   });
 };
 
@@ -33,96 +23,71 @@ export type FileInfo = {
 };
 
 /**
- * FISCO BCOS服务类
- * 通过SpringBoot后端与区块链交互
+ * Mock blockchain service for frontend-only implementation
  */
 class FiscoBcosService {
-  private isConnected: boolean = false;
+  private isConnected: boolean = true;
   
   /**
-   * 检查与区块链的连接状态
+   * Check connection status - frontend mock
    */
   async checkConnection(): Promise<boolean> {
-    try {
-      const response = await apiClient.get('/blockchain/status');
-      this.isConnected = response.data.connected;
-      return this.isConnected;
-    } catch (error) {
-      console.error('连接FISCO BCOS节点失败:', error);
-      this.isConnected = false;
-      return false;
-    }
+    // Simulate connection check
+    await new Promise(resolve => setTimeout(resolve, 300));
+    this.isConnected = true;
+    return this.isConnected;
   }
   
   /**
-   * 获取连接状态
+   * Get connection status
    */
   getConnectionStatus(): boolean {
     return this.isConnected;
   }
   
   /**
-   * 上传文件信息到区块链
+   * Upload file info - frontend mock
    */
   async uploadFile(fileInfo: FileInfo): Promise<string> {
-    try {
-      if (!this.isConnected) {
-        await this.checkConnection();
-        if (!this.isConnected) {
-          throw new Error('未连接到区块链节点');
-        }
-      }
-      
-      const response = await apiClient.post('/blockchain/file', fileInfo);
-      return response.data.txHash;
-    } catch (error: any) {
-      console.error('上传文件到区块链失败:', error);
-      throw new Error(`上传文件到区块链失败: ${error.message}`);
-    }
+    // Simulate upload delay
+    await new Promise(resolve => setTimeout(resolve, 800));
+    return `tx-${Date.now()}`;
   }
   
   /**
-   * 从区块链获取文件信息
+   * Get file info - frontend mock
    */
   async getFileInfo(fileHash: string): Promise<any> {
-    try {
-      if (!this.isConnected) {
-        await this.checkConnection();
-        if (!this.isConnected) {
-          throw new Error('未连接到区块链节点');
-        }
-      }
-      
-      const response = await apiClient.get(`/blockchain/file/${fileHash}`);
-      return response.data;
-    } catch (error: any) {
-      console.error('从区块链获取文件信息失败:', error);
-      throw new Error(`从区块链获取文件信息失败: ${error.message}`);
-    }
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    return {
+      name: "示例文件.pdf",
+      hash: fileHash,
+      size: "1024",
+      owner: "demo@example.com",
+      uploadDate: new Date().toISOString().split('T')[0],
+      verified: true
+    };
   }
   
   /**
-   * 获取区块信息
+   * Get block info - frontend mock
    */
   async getBlockInfo(blockNumber: number): Promise<any> {
-    try {
-      if (!this.isConnected) {
-        await this.checkConnection();
-        if (!this.isConnected) {
-          throw new Error('未连接到区块链节点');
-        }
-      }
-      
-      const response = await apiClient.get(`/blockchain/block/${blockNumber}`);
-      return response.data;
-    } catch (error: any) {
-      console.error('获取区块信息失败:', error);
-      throw new Error(`获取区块信息失败: ${error.message}`);
-    }
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    return {
+      blockNumber,
+      hash: `0xblock${blockNumber}`,
+      timestamp: Date.now() - (Math.random() * 86400000),
+      transactions: [`0x${Math.random().toString(36).substring(2, 15)}`]
+    };
   }
   
   /**
-   * 将文件访问日志记录到区块链
+   * Record access log - frontend mock
    */
   async recordAccessLog(logData: {
     fileId: string;
@@ -130,23 +95,12 @@ class FiscoBcosService {
     accessType: string;
     timestamp: string;
   }): Promise<string> {
-    try {
-      if (!this.isConnected) {
-        await this.checkConnection();
-        if (!this.isConnected) {
-          throw new Error('未连接到区块链节点');
-        }
-      }
-      
-      const response = await apiClient.post('/blockchain/access-log', logData);
-      return response.data.txHash;
-    } catch (error: any) {
-      console.error('记录访问日志到区块链失败:', error);
-      throw new Error(`记录访问日志到区块链失败: ${error.message}`);
-    }
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 400));
+    return `tx-log-${Date.now()}`;
   }
 }
 
-// 导出单例实例
+// Export singleton instance
 export const fiscoBcosService = new FiscoBcosService();
 export default fiscoBcosService;
