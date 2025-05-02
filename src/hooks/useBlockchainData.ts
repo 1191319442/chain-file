@@ -4,7 +4,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { Transaction } from '@/components/blockchain/TransactionCard';
 
 // Mock data for frontend development
-const MOCK_TRANSACTIONS = [
+const MOCK_TRANSACTIONS: Transaction[] = [
   {
     id: 'tx-1',
     type: 'upload',

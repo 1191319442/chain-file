@@ -10,6 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { FilePermission } from '@/types/file';
 
 export type FileItem = {
   id: string;
@@ -19,6 +20,7 @@ export type FileItem = {
   uploadDate: string;
   hash: string;
   owner: string;
+  permission?: FilePermission;
 };
 
 type FileCardProps = {

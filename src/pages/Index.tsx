@@ -16,6 +16,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import FilePermissionDialog from '@/components/file/FilePermissionDialog';
 import FileService from '@/services/fileService';
+import { FilePermission } from '@/types/file';
 
 // Define the FileItem type to match FileCard props
 interface FileItem {
@@ -24,9 +25,9 @@ interface FileItem {
   type: string;
   size: string;
   uploadDate: string;
-  hash?: string;
+  hash: string;
   owner: string;
-  permission?: string;
+  permission?: FilePermission;
 }
 
 const Index: React.FC = () => {
@@ -211,7 +212,7 @@ const Index: React.FC = () => {
           name: selectedFile.name,
           owner: selectedFile.owner,
           size: selectedFile.size,
-          hash: selectedFile.hash || '',
+          hash: selectedFile.hash,
           permission: selectedFile.permission || 'private',
           sharedWith: [],
           uploadDate: selectedFile.uploadDate,
