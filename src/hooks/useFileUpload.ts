@@ -1,160 +1,197 @@
 
 import { useState } from 'react';
-import { useBlockchain } from './useBlockchain';
-import { useToast } from "@/components/ui/use-toast";
-import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
+import { useToast } from '@/hooks/use-toast';
+import { FileStatus } from '@/types/file';
 
-/**
- * File upload hook integrating with Supabase
- */
-export function useFileUpload() {
-  const [files, setFiles] = useState<File[]>([]);
+// Simulated blockchain hash generation
+const generateFileHash = (file: File): Promise<string> => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      // Create a simple hash from file details for demo purposes
+      const hashInput = `${file.name}-${file.size}-${Date.now()}`;
+      const hash = btoa(hashInput).substring(0, 44);
+      resolve(hash);
+    }, 500);
+  });
+};
+
+export const useFileUpload = () => {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
-  const { bcosConnected, checkingConnection, uploadFileToBlockchain } = useBlockchain();
+  const [fileStatus, setFileStatus] = useState<FileStatus | null>(null);
   const { toast } = useToast();
-  const { user } = useAuth();
 
-  // Add files
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const newFiles = Array.from(e.target.files);
-      setFiles([...files, ...newFiles]);
-    }
-  };
-
-  // Remove file
-  const removeFile = (index: number) => {
-    const newFiles = [...files];
-    newFiles.splice(index, 1);
-    setFiles(newFiles);
-  };
-
-  // Upload files to Supabase storage and record in database
-  const handleUpload = async () => {
-    if (files.length === 0) {
-      toast({
-        title: "请选择要上传的文件",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!bcosConnected) {
-      toast({
-        title: "区块链连接失败",
-        description: "无法连接到区块链节点，请检查网络连接",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!user) {
-      toast({
-        title: "请先登录",
-        description: "您需要登录才能上传文件",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setUploading(true);
-    setProgress(0);
+  const uploadFile = async (file: File) => {
+    if (!file) return;
     
     try {
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        setProgress(Math.round((i / files.length) * 30));
-        
-        const userId = user?.id || 'demo-user';
-        const email = user?.email || 'demo@example.com';
-        
-        // Generate file path and hash
-        const timestamp = new Date().getTime();
-        const fileExt = file.name.split('.').pop();
-        const filePath = `${userId}/${timestamp}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-        const fileHash = `0x${Array.from(new Array(40), () => Math.floor(Math.random() * 16).toString(16)).join('')}`;
-        
-        setProgress(40);
-        
-        // Upload file to Supabase storage
-        const { error: storageError } = await supabase
-          .storage
-          .from('files')
-          .upload(filePath, file, {
-            cacheControl: '3600',
-            upsert: false
-          });
-          
-        if (storageError) throw storageError;
-        
-        setProgress(60);
-        
-        // Record file metadata in database
-        const { error: dbError } = await supabase
-          .from('files')
-          .insert({
-            name: file.name,
-            user_id: userId,
-            size: file.size.toString(),
-            content_type: file.type || 'application/octet-stream',
-            hash: fileHash
-          });
-          
-        if (dbError) throw dbError;
-        
-        setProgress(80);
-        
-        // Create blockchain transaction record
-        const { error: txError } = await supabase
-          .from('blockchain_transactions')
-          .insert({
-            tx_hash: `tx-${uuidv4().substring(0, 8)}`,
-            type: 'upload',
-            file_name: file.name,
-            file_hash: fileHash,
-            user_id: userId,
-            status: 'confirmed',
-            block_number: Math.floor(10000 + Math.random() * 5000)
-          });
-          
-        if (txError) throw txError;
-        
-        setProgress(90 + Math.round((i / files.length) * 10));
+      setUploading(true);
+      setProgress(0);
+      setFileStatus({
+        fileName: file.name,
+        status: 'preparing',
+        progress: 0,
+        message: '准备上传...'
+      });
+
+      // Get the current user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('用户未登录');
       }
       
-      setProgress(100);
+      // Step 1: Generate file hash
+      setFileStatus({
+        fileName: file.name,
+        status: 'hashing',
+        progress: 10,
+        message: '计算文件哈希...'
+      });
       
-      setTimeout(() => {
-        setUploading(false);
-        setFiles([]);
+      const fileHash = await generateFileHash(file);
+      
+      // Step 2: Check if file already exists in database
+      const { data: existingFiles } = await supabase
+        .from('files')
+        .select('id, hash')
+        .eq('hash', fileHash)
+        .eq('user_id', user.id);
+      
+      if (existingFiles && existingFiles.length > 0) {
         toast({
-          title: "文件上传成功",
-          description: `已成功上传 ${files.length} 个文件`,
+          title: "文件已存在",
+          description: `${file.name} 已在您的文件列表中`,
+          variant: "warning",
         });
-      }, 500);
+        setFileStatus({
+          fileName: file.name,
+          status: 'exists',
+          progress: 100,
+          message: '文件已存在'
+        });
+        return;
+      }
       
+      // Step 3: Upload to storage
+      setFileStatus({
+        fileName: file.name,
+        status: 'uploading',
+        progress: 30,
+        message: '上传中...'
+      });
+      
+      // Create a unique file path
+      const filePath = `${user.id}/${uuidv4()}-${file.name}`;
+      
+      // Upload file to storage
+      const { error: uploadError } = await supabase.storage
+        .from('files')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+      
+      if (uploadError) throw uploadError;
+      
+      // Step 4: Add file metadata to database
+      setFileStatus({
+        fileName: file.name,
+        status: 'processing',
+        progress: 70,
+        message: '处理文件元数据...'
+      });
+      
+      const fileId = uuidv4();
+      
+      // Add file to database
+      const { error: dbError } = await supabase
+        .from('files')
+        .insert({
+          id: fileId,
+          name: file.name,
+          size: file.size.toString(),
+          hash: fileHash,
+          content_type: file.type,
+          user_id: user.id,
+          permission: 'private'
+        });
+      
+      if (dbError) throw dbError;
+      
+      // Step 5: Add blockchain transaction record
+      setFileStatus({
+        fileName: file.name,
+        status: 'blockchain',
+        progress: 90,
+        message: '提交到区块链...'
+      });
+      
+      const txHash = `tx_${Date.now()}_${Math.floor(Math.random() * 1000000)}`;
+      
+      // Add blockchain transaction record
+      const { error: txError } = await supabase
+        .from('blockchain_transactions')
+        .insert({
+          id: uuidv4(),
+          tx_hash: txHash,
+          type: 'upload',
+          file_name: file.name,
+          file_hash: fileHash,
+          user_id: user.id,
+          status: 'confirmed',
+          block_number: Math.floor(Math.random() * 10000000)
+        });
+      
+      if (txError) throw txError;
+      
+      // Complete upload
+      setFileStatus({
+        fileName: file.name,
+        status: 'complete',
+        progress: 100,
+        message: '上传完成'
+      });
+      
+      toast({
+        title: "上传成功",
+        description: `${file.name} 已成功上传并记录到区块链`,
+      });
+      
+      // Reset upload state after a short delay
+      setTimeout(() => {
+        setFileStatus(null);
+        setProgress(0);
+      }, 3000);
+      
+      return fileId;
     } catch (error: any) {
-      console.error('文件上传失败:', error);
-      setUploading(false);
+      console.error('Upload failed:', error);
+      setFileStatus({
+        fileName: file.name,
+        status: 'error',
+        progress: 0,
+        message: `上传失败: ${error.message}`
+      });
+      
       toast({
         title: "上传失败",
-        description: error.message || "文件上传过程中发生错误",
+        description: error.message || "文件上传过程中出错",
         variant: "destructive",
       });
+      
+      return null;
+    } finally {
+      setUploading(false);
     }
   };
 
   return {
-    files,
+    uploadFile,
     uploading,
     progress,
-    bcosConnected,
-    checkingConnection,
-    handleFileChange,
-    removeFile,
-    handleUpload
+    fileStatus
   };
-}
+};

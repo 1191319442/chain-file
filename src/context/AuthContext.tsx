@@ -7,8 +7,9 @@
 import React, { createContext, useContext } from 'react';
 import { useAuthState } from '@/hooks/useAuthState';
 import { useToast } from "@/hooks/use-toast";
-import { AuthService } from '@/services/auth/AuthService';
 import { LoginCredentials, RegisterData, User, Session } from '@/types/auth';
+import { supabase } from '@/integrations/supabase/client';
+import { CryptoService } from '@/api/cryptoService';
 
 // 认证上下文类型定义
 interface AuthContextType {
@@ -34,16 +35,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   const login = async (credentials: LoginCredentials): Promise<boolean> => {
     try {
-      const newSession = await AuthService.login(credentials);
-      if (newSession) {
-        toast({
-          title: "登录成功",
-          description: `欢迎回来！`,
-        });
-        return true;
+      // 使用 Supabase 进行身份验证
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: credentials.email,
+        password: credentials.password
+      });
+
+      if (error) throw error;
+      
+      // 验证管理员权限（如果需要）
+      if (credentials.isAdmin && data.user) {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('is_admin')
+          .eq('user_id', data.user.id)
+          .single();
+        
+        if (!profileData || !profileData.is_admin) {
+          throw new Error('您没有管理员权限');
+        }
       }
-      throw new Error("登录失败");
+
+      toast({
+        title: "登录成功",
+        description: `欢迎回来！`,
+      });
+      
+      return true;
     } catch (error: any) {
+      console.error('登录失败:', error);
       toast({
         title: "登录失败",
         description: error.message || "无法验证您的凭据，请重试",
@@ -55,16 +75,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const register = async (data: RegisterData): Promise<boolean> => {
     try {
-      const success = await AuthService.register(data);
-      if (success) {
-        toast({
-          title: "注册成功",
-          description: "您的账户已创建，请登录",
-        });
-        return true;
-      }
-      throw new Error("注册失败");
+      // 生成加密密钥对
+      const keyPair = CryptoService.generateKeyPair();
+
+      // 使用 Supabase 注册用户
+      const { error } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          data: {
+            username: data.username,
+            publicKey: keyPair.publicKey
+          }
+        }
+      });
+      
+      if (error) throw error;
+      
+      // 存储私钥到本地存储
+      localStorage.setItem('user_private_key', keyPair.privateKey);
+      
+      toast({
+        title: "注册成功",
+        description: "您的账户已创建，请登录",
+      });
+      
+      return true;
     } catch (error: any) {
+      console.error('注册失败:', error);
       toast({
         title: "注册失败",
         description: error.message || "无法创建账户，请重试",
@@ -76,12 +114,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
-      await AuthService.logout();
+      await supabase.auth.signOut();
       toast({
         title: "已登出",
         description: "您已成功退出系统",
       });
     } catch (error: any) {
+      console.error('登出失败:', error);
       toast({
         title: "登出失败",
         description: "退出系统时出现错误，请重试",
@@ -94,13 +133,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       if (!user) throw new Error("用户未登录");
       
-      const success = await AuthService.updateProfile(data);
+      // 更新 Supabase 用户元数据
+      const { error: updateError } = await supabase.auth.updateUser({
+        data: data
+      });
       
-      if (!success) throw new Error("更新失败");
+      if (updateError) throw updateError;
       
       // 更新本地用户状态
-      if (success && data.username && user) {
-        setUser({...user, username: data.username});
+      if (data.username && user) {
+        const updatedUser = {...user, username: data.username};
+        setUser(updatedUser);
+        
+        // 更新会话中的用户信息
+        if (session) {
+          setSession({
+            ...session,
+            user: updatedUser
+          });
+        }
       }
       
       toast({
@@ -120,10 +171,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // 判断用户是否为管理员
+  const isAdmin = user?.role === 'admin';
+
   // 提供认证上下文值
-  const value = {
+  const value: AuthContextType = {
     isAuthenticated,
-    isAdmin: AuthService.isAdmin(user),
+    isAdmin,
     user,
     session,
     login,
