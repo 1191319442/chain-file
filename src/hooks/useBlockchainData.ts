@@ -2,45 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { Transaction } from '@/components/blockchain/TransactionCard';
-
-// Mock data for frontend development
-const MOCK_TRANSACTIONS: Transaction[] = [
-  {
-    id: 'tx-1',
-    type: 'upload',
-    timestamp: new Date().toLocaleString(),
-    fileName: '财务报表.xlsx',
-    fileHash: '0x1234567890abcdef',
-    user: 'user-1',
-    status: 'confirmed',
-    blockNumber: 12345
-  },
-  {
-    id: 'tx-2',
-    type: 'verification',
-    timestamp: new Date(Date.now() - 86400000).toLocaleString(),
-    fileName: '技术文档.pdf',
-    fileHash: '0x0987654321fedcba',
-    user: 'user-2',
-    status: 'confirmed',
-    blockNumber: 12344
-  }
-];
-
-const MOCK_BLOCKS = [
-  {
-    number: 12345,
-    hash: '0xblock12345',
-    timestamp: Date.now(),
-    transactions: ['0x1234567890abcdef']
-  },
-  {
-    number: 12344,
-    hash: '0xblock12344',
-    timestamp: Date.now() - 86400000,
-    transactions: ['0x0987654321fedcba']
-  }
-];
+import { supabase } from '@/integrations/supabase/client';
 
 export const useBlockchainData = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -52,9 +14,55 @@ export const useBlockchainData = () => {
     try {
       setLoading(true);
       
-      // Use mock data instead of fetching from Supabase
-      setTransactions(MOCK_TRANSACTIONS);
-      setBlocks(MOCK_BLOCKS);
+      // Fetch blockchain transactions from Supabase
+      const { data: transactionsData, error: transactionsError } = await supabase
+        .from('blockchain_transactions')
+        .select(`
+          id,
+          tx_hash,
+          type,
+          file_name,
+          file_hash,
+          user_id,
+          status,
+          block_number,
+          created_at
+        `)
+        .order('created_at', { ascending: false });
+
+      if (transactionsError) throw transactionsError;
+
+      // Transform database records to match the Transaction type
+      const transformedTransactions = transactionsData.map(tx => ({
+        id: tx.id,
+        type: tx.type as 'upload' | 'verification',
+        timestamp: new Date(tx.created_at).toLocaleString(),
+        fileName: tx.file_name,
+        fileHash: tx.file_hash,
+        user: tx.user_id,
+        status: tx.status,
+        blockNumber: tx.block_number
+      }));
+
+      setTransactions(transformedTransactions);
+
+      // Group transactions by block number to create blocks data
+      const blockNumbersSet = new Set(transactionsData.map(tx => tx.block_number).filter(Boolean));
+      const blocksList = Array.from(blockNumbersSet).map(blockNum => {
+        const blockTransactions = transactionsData.filter(tx => tx.block_number === blockNum);
+        const latestTx = blockTransactions.sort((a, b) => 
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        )[0];
+        
+        return {
+          number: blockNum,
+          hash: `0xblock${blockNum}`,
+          timestamp: new Date(latestTx.created_at).getTime(),
+          transactions: blockTransactions.map(tx => tx.tx_hash)
+        };
+      });
+
+      setBlocks(blocksList);
 
     } catch (error: any) {
       toast({
@@ -67,16 +75,24 @@ export const useBlockchainData = () => {
     }
   };
 
-  // Simulate real-time updates with setTimeout
+  // Fetch data initially and set up subscription
   useEffect(() => {
     fetchBlockchainData();
     
-    // Simulate periodic updates
-    const interval = setInterval(() => {
-      fetchBlockchainData();
-    }, 30000); // Update every 30 seconds
+    // Set up real-time subscription for new transactions
+    const channel = supabase
+      .channel('blockchain-changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'blockchain_transactions' }, 
+        () => {
+          fetchBlockchainData();
+        }
+      )
+      .subscribe();
     
-    return () => clearInterval(interval);
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   return {

@@ -1,11 +1,13 @@
 
 import { useState } from 'react';
 import { useBlockchain } from './useBlockchain';
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from '@/context/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { v4 as uuidv4 } from 'uuid';
 
 /**
- * Frontend-only file upload hook
+ * File upload hook integrating with Supabase
  */
 export function useFileUpload() {
   const [files, setFiles] = useState<File[]>([]);
@@ -30,7 +32,7 @@ export function useFileUpload() {
     setFiles(newFiles);
   };
 
-  // Upload files - frontend mock
+  // Upload files to Supabase storage and record in database
   const handleUpload = async () => {
     if (files.length === 0) {
       toast({
@@ -49,6 +51,15 @@ export function useFileUpload() {
       return;
     }
 
+    if (!user) {
+      toast({
+        title: "请先登录",
+        description: "您需要登录才能上传文件",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setUploading(true);
     setProgress(0);
     
@@ -60,13 +71,58 @@ export function useFileUpload() {
         const userId = user?.id || 'demo-user';
         const email = user?.email || 'demo@example.com';
         
-        // Mock upload
-        await uploadFileToBlockchain(file, userId, email);
+        // Generate file path and hash
+        const timestamp = new Date().getTime();
+        const fileExt = file.name.split('.').pop();
+        const filePath = `${userId}/${timestamp}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+        const fileHash = `0x${Array.from(new Array(40), () => Math.floor(Math.random() * 16).toString(16)).join('')}`;
         
-        setProgress(60 + Math.round((i / files.length) * 40));
+        setProgress(40);
         
-        // Simulate processing delay
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Upload file to Supabase storage
+        const { error: storageError } = await supabase
+          .storage
+          .from('files')
+          .upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: false
+          });
+          
+        if (storageError) throw storageError;
+        
+        setProgress(60);
+        
+        // Record file metadata in database
+        const { error: dbError } = await supabase
+          .from('files')
+          .insert({
+            name: file.name,
+            user_id: userId,
+            size: file.size.toString(),
+            content_type: file.type || 'application/octet-stream',
+            hash: fileHash
+          });
+          
+        if (dbError) throw dbError;
+        
+        setProgress(80);
+        
+        // Create blockchain transaction record
+        const { error: txError } = await supabase
+          .from('blockchain_transactions')
+          .insert({
+            tx_hash: `tx-${uuidv4().substring(0, 8)}`,
+            type: 'upload',
+            file_name: file.name,
+            file_hash: fileHash,
+            user_id: userId,
+            status: 'confirmed',
+            block_number: Math.floor(10000 + Math.random() * 5000)
+          });
+          
+        if (txError) throw txError;
+        
+        setProgress(90 + Math.round((i / files.length) * 10));
       }
       
       setProgress(100);
