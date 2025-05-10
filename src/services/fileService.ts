@@ -1,5 +1,5 @@
 
-import { FileMetadata, FilePermission, FilePermissionSettings, FileAccess } from '@/types/file';
+import { FileMetadata, FilePermission, FilePermissionSettings, FileAccess, FileAccessLog } from '@/types/file';
 import { FileMetadataService } from './files/fileMetadataService';
 import { FileUploadService } from './files/fileUploadService';
 import { FileAccessService } from './files/fileAccessService';
@@ -24,6 +24,11 @@ export class FileService {
   static shareFile = FileOperationsService.shareFile;
   static setFilePermission = FileOperationsService.setFilePermission;
   static downloadFile = FileOperationsService.downloadFile;
+  
+  // Alias method to match expected function name in LogQuery.tsx
+  static getAllAccessLogs(fileHash: string): Promise<FileAccessLog[]> {
+    return FileAccessService.getFileAccessLogs(fileHash);
+  }
 }
 
 export default FileService;

@@ -7,13 +7,14 @@
 import React, { useState } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { useBlockchainData } from '@/hooks/useBlockchainData';
-import { BlocksList } from '@/components/blockchain/BlocksList';
-import { TransactionsList } from '@/components/blockchain/TransactionsList';
+import BlocksList from '@/components/blockchain/BlocksList';
+import TransactionsList from '@/components/blockchain/TransactionsList';
 import BlockchainSearch from '@/components/blockchain/BlockchainSearch';
 import { Transaction } from '@/types/transaction';
 
 const Blockchain: React.FC = () => {
   const { transactions, latestBlocks, loading, error } = useBlockchainData();
+  const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Transaction[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   
@@ -24,6 +25,8 @@ const Blockchain: React.FC = () => {
   }));
 
   const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    
     if (!query.trim()) {
       setSearchResults([]);
       return;
@@ -31,11 +34,11 @@ const Blockchain: React.FC = () => {
 
     setIsSearching(true);
     
-    // Filter transactions by hash, file name, or user ID
+    // Filter transactions by hash, file name, or user
     const results = transformedTransactions.filter(tx => 
       tx.txHash.toLowerCase().includes(query.toLowerCase()) ||
       tx.fileName.toLowerCase().includes(query.toLowerCase()) ||
-      tx.userId.toLowerCase().includes(query.toLowerCase())
+      tx.user.toLowerCase().includes(query.toLowerCase())
     );
     
     setSearchResults(results);
@@ -56,11 +59,18 @@ const Blockchain: React.FC = () => {
           <p className="text-muted-foreground">查看区块链交易记录和文件验证信息</p>
         </div>
         
-        <BlockchainSearch onSearch={handleSearch} isSearching={isSearching} />
+        <BlockchainSearch value={searchQuery} onChange={handleSearch} />
         
         <div className="grid gap-6 md:grid-cols-2">
-          <BlocksList blocks={latestBlocks} isLoading={loading} />
-          <TransactionsList transactions={displayTransactions} isLoading={loading} />
+          <BlocksList blocks={latestBlocks.map(blockNumber => ({
+            blockNumber,
+            timestamp: new Date().toLocaleString(),
+            transactions: Math.floor(Math.random() * 10) + 1,
+            size: `${Math.floor(Math.random() * 100) + 10} KB`,
+            hash: `0x${Array.from(new Array(64), () => Math.floor(Math.random() * 16).toString(16)).join('')}`
+          }))} />
+          
+          <TransactionsList transactions={displayTransactions} />
         </div>
       </div>
     </MainLayout>

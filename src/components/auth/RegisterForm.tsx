@@ -1,204 +1,116 @@
 
-import React, { useState } from 'react';
+import React from 'react';
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CardContent, CardFooter } from "@/components/ui/card";
-import { User, Mail, Lock, Loader2 } from "lucide-react";
-import { useAuth } from "@/context/AuthContext";
-import { RegisterData } from '@/types/auth';
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
 
-interface RegisterFormProps {
-  isLoading: boolean;
-  setIsLoading: React.Dispatch<React.SetStateAction<boolean>>;
-}
+const formSchema = z.object({
+  email: z.string().email({
+    message: "请输入有效的邮箱地址.",
+  }),
+  password: z.string().min(6, {
+    message: "密码至少需要6个字符.",
+  }),
+  username: z.string().min(2, {
+    message: "用户名至少需要2个字符.",
+  }),
+});
 
-const RegisterForm: React.FC<RegisterFormProps> = ({ isLoading, setIsLoading }) => {
-  const { register } = useAuth();
-  const [registerError, setRegisterError] = useState<string | null>(null);
-  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
-  const [registerForm, setRegisterForm] = useState<RegisterData & { confirmPassword: string }>({
-    username: '',
-    email: '',
-    password: '',
-    confirmPassword: ''
+export type RegisterFormValues = z.infer<typeof formSchema>;
+
+const RegisterForm = () => {
+  const { toast } = useToast();
+  const navigate = useNavigate();
+
+  const form = useForm<RegisterFormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+      username: "",
+    },
   });
 
-  const checkEmailExists = async (email: string) => {
+  const onSubmit = async (values: RegisterFormValues) => {
     try {
-      setIsCheckingEmail(true);
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('id', email)
-        .maybeSingle();
+      const { data, error } = await supabase.auth.signUp({
+        email: values.email,
+        password: values.password,
+        options: {
+          data: {
+            username: values.username,
+          }
+        }
+      });
 
       if (error) throw error;
-      return !!data;
-    } catch (error) {
-      console.error('检查邮箱时出错:', error);
-      return false;
-    } finally {
-      setIsCheckingEmail(false);
-    }
-  };
 
-  const handleRegisterChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setRegisterForm(prev => ({ ...prev, [name]: value }));
-    setRegisterError(null);
+      toast({
+        title: "注册成功",
+        description: "请登录您的账号",
+      });
 
-    // 当邮箱输入变化时，检查是否已存在
-    if (name === 'email' && value) {
-      const emailExists = await checkEmailExists(value);
-      if (emailExists) {
-        setRegisterError("该邮箱已被注册");
-      }
-    }
-  };
-
-  const handleRegisterSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setRegisterError(null);
-    
-    // 基础验证
-    if (!registerForm.username || !registerForm.email || !registerForm.password || !registerForm.confirmPassword) {
-      setRegisterError("请填写所有必填字段");
-      return;
-    }
-    
-    if (registerForm.password !== registerForm.confirmPassword) {
-      setRegisterError("两次输入的密码不匹配");
-      return;
-    }
-
-    if (registerForm.password.length < 6) {
-      setRegisterError("密码长度必须至少为6个字符");
-      return;
-    }
-
-    // 再次检查邮箱是否已存在
-    const emailExists = await checkEmailExists(registerForm.email);
-    if (emailExists) {
-      setRegisterError("该邮箱已被注册");
-      return;
-    }
-    
-    setIsLoading(true);
-    
-    try {
-      const registerData: RegisterData = {
-        username: registerForm.username,
-        email: registerForm.email,
-        password: registerForm.password
-      };
-      
-      const success = await register(registerData);
-      
-      if (success) {
-        setRegisterForm({
-          username: '',
-          email: '',
-          password: '',
-          confirmPassword: ''
-        });
-      } else {
-        setRegisterError("注册失败，请重试");
-      }
-    } finally {
-      setIsLoading(false);
+      navigate('/login');
+    } catch (error: any) {
+      toast({
+        title: "注册失败",
+        description: error.message || "请稍后再试",
+        variant: "destructive",
+      });
     }
   };
 
   return (
-    <form onSubmit={handleRegisterSubmit}>
-      <CardContent className="space-y-4">
-        {registerError && (
-          <Alert variant="destructive">
-            <AlertDescription>{registerError}</AlertDescription>
-          </Alert>
-        )}
-        <div className="space-y-2">
-          <Label htmlFor="register-username">用户名</Label>
-          <div className="relative">
-            <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input 
-              id="register-username" 
-              name="username" 
-              placeholder="用户名" 
-              className="pl-10"
-              value={registerForm.username}
-              onChange={handleRegisterChange}
-              disabled={isLoading}
-            />
-          </div>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="register-email">邮箱</Label>
-          <div className="relative">
-            <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input 
-              id="register-email" 
-              name="email" 
-              type="email" 
-              placeholder="your@email.com" 
-              className="pl-10"
-              value={registerForm.email}
-              onChange={handleRegisterChange}
-              disabled={isLoading || isCheckingEmail}
-            />
-          </div>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="register-password">密码</Label>
-          <div className="relative">
-            <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input 
-              id="register-password" 
-              name="password" 
-              type="password" 
-              placeholder="••••••••" 
-              className="pl-10"
-              value={registerForm.password}
-              onChange={handleRegisterChange}
-              disabled={isLoading}
-            />
-          </div>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="register-confirm-password">确认密码</Label>
-          <div className="relative">
-            <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input 
-              id="register-confirm-password" 
-              name="confirmPassword" 
-              type="password" 
-              placeholder="••••••••" 
-              className="pl-10"
-              value={registerForm.confirmPassword}
-              onChange={handleRegisterChange}
-              disabled={isLoading}
-            />
-          </div>
-        </div>
-      </CardContent>
-      <CardFooter>
-        <Button 
-          type="submit" 
-          className="w-full" 
-          disabled={isLoading || isCheckingEmail || !!registerError}
-        >
-          {isLoading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              注册中...
-            </>
-          ) : "注册"}
-        </Button>
-      </CardFooter>
-    </form>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="username"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>用户名</FormLabel>
+              <FormControl>
+                <Input placeholder="请输入用户名" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>邮箱</FormLabel>
+              <FormControl>
+                <Input placeholder="请输入邮箱" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>密码</FormLabel>
+              <FormControl>
+                <Input type="password" placeholder="请输入密码" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <Button type="submit" className="w-full">注册</Button>
+      </form>
+    </Form>
   );
 };
 

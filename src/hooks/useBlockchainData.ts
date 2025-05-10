@@ -17,24 +17,30 @@ export const useBlockchainData = () => {
         // Fetch transactions from Supabase
         const { data, error } = await supabase
           .from('blockchain_transactions')
-          .select('*')
+          .select('*, files(name, hash)')
           .order('created_at', { ascending: false })
           .limit(10);
 
         if (error) throw error;
 
         // Map database results to our BlockchainTransaction type
-        const formattedTransactions: BlockchainTransaction[] = (data || []).map(tx => ({
-          id: tx.id || '',
-          type: (tx.type || 'upload') as 'upload' | 'download' | 'share' | 'verification',
-          timestamp: new Date(tx.created_at || Date.now()).getTime(),
-          fileName: tx.file_name || '',
-          fileHash: tx.file_hash || '',
-          userId: tx.user_id || '',
-          status: (tx.status || 'confirmed') as 'pending' | 'confirmed' | 'failed',
-          blockNumber: tx.block_number || 0,
-          txHash: tx.tx_hash || ''
-        }));
+        const formattedTransactions: BlockchainTransaction[] = (data || []).map(tx => {
+          // Extract file information from the joined data
+          const fileName = tx.files ? tx.files.name : 'Unknown File';
+          const fileHash = tx.files ? tx.files.hash : '';
+
+          return {
+            id: tx.tx_hash || '',
+            type: 'upload' as 'upload' | 'download' | 'share' | 'verification',
+            timestamp: new Date(tx.created_at || Date.now()).getTime(),
+            fileName: fileName,
+            fileHash: fileHash,
+            userId: tx.user_id || '',
+            status: (tx.status || 'confirmed') as 'pending' | 'confirmed' | 'failed',
+            blockNumber: tx.block_number || 0,
+            txHash: tx.tx_hash || ''
+          };
+        });
 
         // Extract unique block numbers for block list
         const blockNumbers = [...new Set(
