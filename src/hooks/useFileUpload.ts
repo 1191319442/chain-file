@@ -18,10 +18,35 @@ const generateFileHash = (file: File): Promise<string> => {
 };
 
 export const useFileUpload = () => {
+  const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [fileStatus, setFileStatus] = useState<FileStatus | null>(null);
+  const [bcosConnected, setBcosConnected] = useState(true);
+  const [checkingConnection, setCheckingConnection] = useState(false);
   const { toast } = useToast();
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setFiles(Array.from(e.target.files));
+    }
+  };
+
+  const removeFile = (index: number) => {
+    setFiles(files.filter((_, i) => i !== index));
+  };
+
+  const handleUpload = async () => {
+    if (files.length === 0) return;
+    
+    // Upload one file at a time
+    for (const file of files) {
+      await uploadFile(file);
+    }
+    
+    // Clear files after upload
+    setFiles([]);
+  };
 
   const uploadFile = async (file: File) => {
     if (!file) return;
@@ -64,7 +89,7 @@ export const useFileUpload = () => {
         toast({
           title: "文件已存在",
           description: `${file.name} 已在您的文件列表中`,
-          variant: "warning",
+          variant: "default"
         });
         setFileStatus({
           fileName: file.name,
@@ -135,14 +160,14 @@ export const useFileUpload = () => {
       const { error: txError } = await supabase
         .from('blockchain_transactions')
         .insert({
-          id: uuidv4(),
           tx_hash: txHash,
           type: 'upload',
           file_name: file.name,
           file_hash: fileHash,
           user_id: user.id,
           status: 'confirmed',
-          block_number: Math.floor(Math.random() * 10000000)
+          block_number: Math.floor(Math.random() * 10000000),
+          file_id: fileId
         });
       
       if (txError) throw txError;
@@ -189,9 +214,15 @@ export const useFileUpload = () => {
   };
 
   return {
-    uploadFile,
+    files,
     uploading,
     progress,
-    fileStatus
+    fileStatus,
+    bcosConnected,
+    checkingConnection,
+    handleFileChange,
+    removeFile,
+    handleUpload,
+    uploadFile
   };
 };

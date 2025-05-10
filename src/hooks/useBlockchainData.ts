@@ -26,12 +26,12 @@ export const useBlockchainData = () => {
         // Map database results to our BlockchainTransaction type
         const formattedTransactions: BlockchainTransaction[] = (data || []).map(tx => ({
           id: tx.id || '',
-          type: tx.type || 'upload',
+          type: (tx.type || 'upload') as 'upload' | 'download' | 'share' | 'verification',
           timestamp: new Date(tx.created_at || Date.now()).getTime(),
           fileName: tx.file_name || '',
           fileHash: tx.file_hash || '',
           userId: tx.user_id || '',
-          status: tx.status || 'confirmed',
+          status: (tx.status || 'confirmed') as 'pending' | 'confirmed' | 'failed',
           blockNumber: tx.block_number || 0,
           txHash: tx.tx_hash || ''
         }));

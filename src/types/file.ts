@@ -30,3 +30,20 @@ export interface FileMetadata {
   uploadDate: string;
   contentType: string;
 }
+
+export interface FileStatus {
+  fileName: string;
+  status: 'preparing' | 'hashing' | 'uploading' | 'processing' | 'blockchain' | 'complete' | 'error' | 'exists';
+  progress: number;
+  message: string;
+}
+
+export interface FileAccessLog {
+  id: string;
+  fileId: string;
+  userId: string;
+  accessType: 'view' | 'download' | 'share';
+  timestamp: number;
+  details?: string;
+  username?: string;
+}

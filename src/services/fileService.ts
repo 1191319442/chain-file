@@ -17,9 +17,8 @@ export class FileService {
   static uploadFile = FileUploadService.uploadFile;
   
   static getFileAccessLogs = FileAccessService.getFileAccessLogs;
-  static logFileAccess = FileAccessService.logFileAccess;
-  static checkFileAccess = FileAccessService.checkFileAccess;
-  static getAllAccessLogs = FileAccessService.getAllAccessLogs;
+  static logFileAccess = FileAccessService.logAccess;
+  static getUserFileAccessLogs = FileAccessService.getUserFileAccessLogs;
   
   static deleteFile = FileOperationsService.deleteFile;
   static shareFile = FileOperationsService.shareFile;
@@ -28,4 +27,3 @@ export class FileService {
 }
 
 export default FileService;
-

@@ -17,3 +17,15 @@ export interface Block {
   transactionCount: number;
   hash: string;
 }
+
+export interface Transaction {
+  id: string;
+  type: 'upload' | 'download' | 'share' | 'verification';
+  timestamp: number;
+  fileName: string;
+  fileHash: string;
+  user: string;
+  status: 'pending' | 'confirmed' | 'failed';
+  blockNumber: number;
+  txHash: string;
+}
